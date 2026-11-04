@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* global process, console, fetch, setInterval */
 // Plays the delivery platform for the demo: signs orders and sends them to the incoming webhook.
 //   node scripts/delivery-platform.mjs          one random order every 5 seconds
 //   node scripts/delivery-platform.mjs --once   a single order
