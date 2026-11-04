@@ -20,6 +20,12 @@ describe('isPrivateAddress', () => {
     '::ffff:127.0.0.1',
     '::ffff:7f00:1',
     '::ffff:a9fe:a9fe',
+    '100.64.0.1',
+    '100.127.255.254',
+    '224.0.0.1',
+    '255.255.255.255',
+    '64:ff9b::7f00:1',
+    '64:ff9b::10.0.0.1',
   ])('refuses %s', (ip) => expect(isPrivateAddress(ip)).toBe(true));
 
   it.each([
@@ -30,6 +36,9 @@ describe('isPrivateAddress', () => {
     '2001:db8::1',
     'fec0::1',
     '::ffff:8.8.8.8',
+    '100.63.255.255',
+    '100.128.0.1',
+    '64:ff9b::808:808',
   ])('allows %s', (ip) => expect(isPrivateAddress(ip)).toBe(false));
 });
 

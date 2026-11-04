@@ -1,7 +1,7 @@
 import { isIP } from 'net';
 import { AppError } from './errors';
 
-/** Loopback, private, link-local or unspecified: an address a webhook must not reach (SSRF). */
+/** Loopback, private, link-local, CGNAT, multicast or unspecified: an address a webhook must not reach (SSRF). */
 export function isPrivateAddress(ip: string): boolean {
   const address = ip.toLowerCase();
   if (isIP(address) === 4) {
@@ -9,6 +9,8 @@ export function isPrivateAddress(ip: string): boolean {
     return (
       a === 0 ||
       a === 10 ||
+      (a === 100 && b >= 64 && b <= 127) || // CGNAT, used inside cloud networks
+      a >= 224 || // multicast, reserved and broadcast
       a === 127 ||
       (a === 169 && b === 254) ||
       (a === 172 && b >= 16 && b <= 31) ||
@@ -16,7 +18,8 @@ export function isPrivateAddress(ip: string): boolean {
     );
   }
   if (isIP(address) !== 6) return false;
-  const mapped = /^::ffff:(.+)$/.exec(address)?.[1];
+  // IPv4-mapped (::ffff:) and NAT64 (64:ff9b::) both carry an IPv4 address in the last 32 bits
+  const mapped = /^(?:::ffff:|64:ff9b::)(.+)$/.exec(address)?.[1];
   if (mapped) {
     if (isIP(mapped) === 4) return isPrivateAddress(mapped);
     // hex form, e.g. ::ffff:7f00:1 = 127.0.0.1
