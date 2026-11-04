@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  api:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env: { POSTGRES_USER: live, POSTGRES_PASSWORD: live, POSTGRES_DB: live_orders }
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U live"
+          --health-interval 2s
+          --health-retries 15
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 2s
+          --health-retries 15
+    env:
+      DATABASE_URL: postgresql://live:live@localhost:5432/live_orders
+      REDIS_URL: redis://localhost:6379
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run build -w @live/api
+      - run: npm run typecheck -w @live/api
+      - run: npx prisma migrate deploy
+        working-directory: api
+      # unit and integration tests (the integration ones run because DATABASE_URL and REDIS_URL are set)
+      - run: npm test -w @live/api
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run typecheck -w @live/web
+      - run: npm test -w @live/web
+      - run: npm run build -w @live/web
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose up -d --build
+      - run: timeout 240 sh -c 'until curl -sf http://localhost:3001/health && curl -sf http://localhost:3000/login >/dev/null; do sleep 3; done'
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+        working-directory: web
+      - run: npm run e2e -w @live/web
+      - if: failure()
+        run: docker compose logs

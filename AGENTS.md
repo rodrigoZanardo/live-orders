@@ -14,6 +14,7 @@ See [docs/PLAN.md](docs/PLAN.md) for what to build and [docs/HANDOFF.md](docs/HA
 - `scripts/`: `delivery-platform.mjs` (signs and sends demo orders), `webhook-receiver.mjs` (prints outgoing webhooks).
 - `.agents/skills/`: step-by-step skills: `backend-feature`, `frontend-feature`, `realtime-event`, `review-checklist`.
 - `docs/`: plan, handoff and later the webhook and deploy docs.
+- `docker-compose.yml`, `api/Dockerfile`, `web/Dockerfile`: local stack; images build from the repo root.
 
 ## Commands
 
@@ -23,6 +24,10 @@ Run at the root (npm workspaces):
 - `npm run typecheck`: `tsc --noEmit` in every workspace (TypeScript strict, `tsconfig.base.json`).
 - `npm run lint`: ESLint (`eslint.config.mjs`, typescript-eslint strict, no type assertions).
 - `npm run format` / `npm run format:check`: Prettier (`.prettierrc`, `.editorconfig`).
+- `npm start` / `npm run stop`: the whole stack in Docker (postgres, redis, api :3001, web :3000).
+- `npm run e2e -w @live/web`: Playwright against the running stack.
+- Integration tests run when `DATABASE_URL` and `REDIS_URL` are set (CI sets both).
+- CI: `.github/workflows/ci.yml` with `api`, `web` and `e2e` jobs.
 
 ## Rules for every change
 

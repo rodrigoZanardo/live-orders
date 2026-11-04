@@ -10,7 +10,9 @@
     "typecheck": "npm run typecheck --workspaces",
     "lint": "eslint . --ignore-pattern **/next-env.d.ts",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "start": "docker compose up --build -d && echo 'App: http://localhost:3000  login admin@example.com / admin-password  API docs: http://localhost:3001/docs'",
+    "stop": "docker compose down"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",

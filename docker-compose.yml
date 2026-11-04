@@ -1,0 +1,50 @@
+# Local stack: `npm start` at the root. Secrets here are local demo values only; real ones come from env (see .env.example).
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment: { POSTGRES_USER: live, POSTGRES_PASSWORD: live, POSTGRES_DB: live_orders }
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ['CMD', 'pg_isready', '-U', 'live']
+      interval: 2s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 2s
+      retries: 20
+
+  api:
+    build: { context: ., dockerfile: api/Dockerfile }
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    environment:
+      DATABASE_URL: postgresql://live:live@postgres:5432/live_orders
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-local-dev-jwt-secret-change-me}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin-password}
+      WEBHOOK_INCOMING_SECRET: ${WEBHOOK_INCOMING_SECRET:-dev-incoming}
+      LATE_AFTER_MINUTES: ${LATE_AFTER_MINUTES:-10}
+      WEB_ORIGIN: http://localhost:3000
+    ports: ['3001:3001']
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:3001/health']
+      interval: 3s
+      retries: 30
+
+  web:
+    build: { context: ., dockerfile: web/Dockerfile }
+    depends_on:
+      api: { condition: service_healthy }
+    environment:
+      API_URL: http://api:3001
+      PUBLIC_API_URL: http://localhost:3001
+      COOKIE_SECURE: 'false'
+    ports: ['3000:3000']
+
+volumes:
+  pgdata:
