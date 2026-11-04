@@ -73,7 +73,7 @@ One API service is enough: the point of this project is events and integration, 
 | `status` | see below |
 | `version` | increases on every change; used for optimistic locking |
 | `statusChangedAt` | used by the late alert |
-| `externalId` | id from the delivery platform, unique with `channel` |
+| `externalId` | id from the delivery platform, unique with `channel`; required for `DELIVERY_PLATFORM` (`EXTERNAL_ID_REQUIRED`) |
 
 ### Status flow
 
@@ -88,7 +88,7 @@ RECEIVED → PREPARING → READY → DELIVERED
 
 ### Error catalog (stable codes, translated in the web app)
 
-`ORDER_NOT_FOUND`, `STATUS_MOVE_INVALID`, `ORDER_CHANGED`, `ITEMS_INVALID`, `CUSTOMER_NAME_INVALID`, `CEP_INVALID`, `WEBHOOK_SIGNATURE_INVALID`, `WEBHOOK_TOO_OLD`, `WEBHOOK_URL_INVALID`, `INVALID_CREDENTIALS`, `TOO_MANY_ATTEMPTS`, `SESSION_INVALID`, `FORBIDDEN`, `INVALID_INPUT`. Same response shape as Stock Manager: `{ statusCode, code, message, params }`, with a test that fails if a code has no translation.
+`ORDER_NOT_FOUND`, `STATUS_MOVE_INVALID`, `ORDER_CHANGED`, `ITEMS_INVALID`, `CUSTOMER_NAME_INVALID`, `CEP_INVALID`, `EXTERNAL_ID_REQUIRED`, `WEBHOOK_SIGNATURE_INVALID`, `WEBHOOK_TOO_OLD`, `WEBHOOK_URL_INVALID`, `INVALID_CREDENTIALS`, `TOO_MANY_ATTEMPTS`, `SESSION_INVALID`, `FORBIDDEN`, `INVALID_INPUT`. Same response shape as Stock Manager: `{ statusCode, code, message, params }`, with a test that fails if a code has no translation.
 
 ---
 
