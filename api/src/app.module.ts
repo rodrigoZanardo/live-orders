@@ -9,9 +9,17 @@ import {
   LoginUseCase,
 } from './application/auth.use-cases';
 import { OrderRepository } from './application/order-repository';
+import {
+  CreateOrderUseCase,
+  GetOrderUseCase,
+  ListEventsUseCase,
+  ListOrdersUseCase,
+  MoveOrderUseCase,
+} from './application/order.use-cases';
 import { requiredEnv } from './env';
 import { AppErrorFilter } from './http/app-error.filter';
 import { AuthController, UsersController } from './http/auth.controller';
+import { EventController, HealthController, OrderController } from './http/order.controller';
 import { AuthGuard } from './http/auth.guard';
 import { JwtTokenService, ScryptPasswordHasher } from './infra/auth.services';
 import { PrismaOrderRepository } from './infra/prisma-order.repository';
@@ -24,7 +32,13 @@ import { PrismaService } from './infra/prisma.service';
       useFactory: () => ({ secret: requiredEnv('JWT_SECRET'), signOptions: { expiresIn: '12h' } }),
     }),
   ],
-  controllers: [AuthController, UsersController],
+  controllers: [
+    AuthController,
+    UsersController,
+    OrderController,
+    EventController,
+    HealthController,
+  ],
   providers: [
     PrismaService,
     { provide: UserRepository, useClass: PrismaUserRepository },
@@ -37,6 +51,11 @@ import { PrismaService } from './infra/prisma.service';
     CreateUserUseCase,
     ListUsersUseCase,
     EnsureAdminUseCase,
+    CreateOrderUseCase,
+    ListOrdersUseCase,
+    GetOrderUseCase,
+    MoveOrderUseCase,
+    ListEventsUseCase,
   ],
 })
 export class AppModule implements OnApplicationBootstrap {

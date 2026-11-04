@@ -6,3 +6,8 @@ export function requiredEnv(name: string): string {
   }
   return value;
 }
+
+/** IANA time zone that decides the business day (daily order numbers, "today's orders"). */
+export function businessTimeZone(): string {
+  return process.env.BUSINESS_TIME_ZONE?.trim() || 'America/Sao_Paulo';
+}

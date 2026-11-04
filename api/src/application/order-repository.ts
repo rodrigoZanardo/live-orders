@@ -36,6 +36,8 @@ export abstract class OrderRepository {
 
   abstract findById(id: string): Promise<Order | null>;
 
+  abstract findByIds(ids: string[]): Promise<Order[]>;
+
   /** Orders of a business day, by number. */
   abstract findByDay(day: string): Promise<Order[]>;
 

@@ -110,6 +110,11 @@ export class PrismaOrderRepository extends OrderRepository {
     return row ? toOrder(row) : null;
   }
 
+  async findByIds(ids: string[]): Promise<Order[]> {
+    const rows = await this.db.order.findMany({ where: { id: { in: ids } }, include: withItems });
+    return rows.map(toOrder);
+  }
+
   async findByDay(day: string): Promise<Order[]> {
     const rows = await this.db.order.findMany({
       where: { day },
