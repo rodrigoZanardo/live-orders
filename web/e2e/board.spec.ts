@@ -110,3 +110,14 @@ test('switching to Portuguese translates the board', async ({ browser }) => {
   await page.getByRole('button', { name: 'English' }).click();
   await expect(page.getByRole('heading', { name: "Today's orders" })).toBeVisible();
 });
+
+test('an expired session goes back to sign in instead of looping', async ({ browser }) => {
+  const context = await browser.newContext();
+  await context.addCookies([
+    { name: 'token', value: 'expired-or-forged', url: 'http://localhost:3000' },
+  ]);
+  const page = await context.newPage();
+  await page.goto('/');
+  await expect(page).toHaveURL(/\/login$/);
+  await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
+});

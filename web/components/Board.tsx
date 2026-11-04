@@ -1,7 +1,6 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { applyEvents, column, hasGap, initialBoard, type BoardState } from '@/lib/board';
 import {
@@ -15,6 +14,15 @@ import { OrderCard } from './OrderCard';
 import { useNewOrderAlert } from './useNewOrderAlert';
 
 const COLUMNS: OrderStatus[] = ['RECEIVED', 'PREPARING', 'READY', 'DELIVERED'];
+
+/** One signal colour per lane, shared by the lane header and its tickets. */
+const LANE_COLOR: Record<OrderStatus, string> = {
+  RECEIVED: 'border-received text-received',
+  PREPARING: 'border-preparing text-preparing',
+  READY: 'border-ready text-ready',
+  DELIVERED: 'border-delivered text-delivered',
+  CANCELLED: 'border-line text-muted',
+};
 const CLOSE_UNAUTHORIZED = 4401;
 
 /**
@@ -36,7 +44,6 @@ export function Board({
 }) {
   const t = useTranslations('board');
   const status = useTranslations('status');
-  const router = useRouter();
   const [board, setBoard] = useState<BoardState>(() => initialBoard(orders, lastSeq));
   const [connection, setConnection] = useState<ConnectionState>('reconnecting');
   const boardRef = useRef(board);
@@ -65,7 +72,7 @@ export function Board({
         cache: 'no-store',
       });
       if (response.status === 401) {
-        router.push('/login');
+        window.location.assign('/session-expired');
         return;
       }
       if (!response.ok) throw new Error(`catch-up failed: ${response.status}`);
@@ -74,7 +81,7 @@ export function Board({
       apply(events);
       if (events.length < 500) return;
     }
-  }, [apiUrl, token, apply, router]);
+  }, [apiUrl, token, apply]);
 
   useEffect(() => {
     let socket: WebSocket | null = null;
@@ -110,7 +117,7 @@ export function Board({
       socket.onclose = (event) => {
         if (stopped) return;
         if (event.code === CLOSE_UNAUTHORIZED) {
-          router.push('/login');
+          window.location.assign('/session-expired');
           return;
         }
         setConnection(attempt >= 2 ? 'offline' : 'reconnecting');
@@ -125,7 +132,7 @@ export function Board({
       clearTimeout(timer);
       socket?.close();
     };
-  }, [apiUrl, token, apply, catchUp, router]);
+  }, [apiUrl, token, apply, catchUp]);
 
   const cancelled = column(board, 'CANCELLED');
 
@@ -150,21 +157,21 @@ export function Board({
       </div>
       {!canMove && <p className="text-sm text-muted">{t('readOnly')}</p>}
 
-      <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {COLUMNS.map((columnStatus) => {
           const items = column(board, columnStatus);
           return (
             <section
               key={columnStatus}
               aria-labelledby={`col-${columnStatus}`}
-              className="flex min-h-40 flex-col rounded-lg bg-panel-muted p-3"
+              className="flex min-h-48 flex-col rounded-xl bg-panel-muted/70 p-3"
             >
               <h2
                 id={`col-${columnStatus}`}
-                className="mb-3 flex items-center justify-between font-display text-lg font-bold"
+                className={`mb-3 flex items-end justify-between border-t-4 pt-2 font-display text-2xl font-extrabold tracking-wide ${LANE_COLOR[columnStatus]}`}
               >
                 {status(columnStatus)}
-                <span className="badge bg-panel font-mono text-muted">{items.length}</span>
+                <span className="text-4xl leading-none tabular-nums">{items.length}</span>
               </h2>
               <ul className="flex flex-col gap-3">
                 {items.map((order) => (
@@ -183,7 +190,7 @@ export function Board({
         <summary className="cursor-pointer font-semibold">
           {t('cancelled', { count: cancelled.length })}
         </summary>
-        <ul className="mt-3 grid gap-3 md:grid-cols-2 2xl:grid-cols-4">
+        <ul className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           {cancelled.map((order) => (
             <li key={order.id}>
               <OrderCard order={order} canMove={false} />

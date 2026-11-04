@@ -63,7 +63,7 @@ async function request(path: string, init: Init = {}): Promise<Response> {
   }
 
   // expired session: back to sign in (login itself answers 401 as a normal error)
-  if (response.status === 401 && path !== '/auth/login') redirect('/login');
+  if (response.status === 401 && path !== '/auth/login') redirect('/session-expired');
   if (!response.ok) {
     const body: unknown = await response.json().catch(() => ({}));
     throw new ApiError(toFailure(body, response.status), response.status);
