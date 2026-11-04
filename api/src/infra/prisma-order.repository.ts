@@ -133,6 +133,11 @@ export class PrismaOrderRepository extends OrderRepository {
     return rows.map(toEvent);
   }
 
+  async lastSeq(): Promise<number> {
+    const last = await this.db.event.findFirst({ orderBy: { seq: 'desc' }, select: { seq: true } });
+    return last ? Number(last.seq) : 0;
+  }
+
   async findEventsOf(orderId: string): Promise<OrderEvent[]> {
     const rows = await this.db.event.findMany({ where: { orderId }, orderBy: { seq: 'asc' } });
     return rows.map(toEvent);

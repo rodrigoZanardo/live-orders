@@ -25,6 +25,9 @@ import { JwtTokenService, ScryptPasswordHasher } from './infra/auth.services';
 import { PrismaOrderRepository } from './infra/prisma-order.repository';
 import { PrismaUserRepository } from './infra/prisma-user.repository';
 import { PrismaService } from './infra/prisma.service';
+import { LiveEvents } from './application/live-events';
+import { EventBus, RedisEventBus } from './realtime/event-bus';
+import { LiveGateway } from './realtime/live.gateway';
 
 @Module({
   imports: [
@@ -47,6 +50,9 @@ import { PrismaService } from './infra/prisma.service';
     { provide: TokenService, useClass: JwtTokenService },
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_FILTER, useClass: AppErrorFilter },
+    { provide: EventBus, useFactory: () => new RedisEventBus(requiredEnv('REDIS_URL')) },
+    { provide: LiveEvents, useExisting: EventBus },
+    LiveGateway,
     LoginUseCase,
     CreateUserUseCase,
     ListUsersUseCase,

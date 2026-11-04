@@ -5,6 +5,7 @@ import { AppModule } from '../src/app.module';
 import { PasswordHasher, TokenService, UserRepository } from '../src/application/auth.ports';
 import { OrderRepository } from '../src/application/order-repository';
 import { configureApp } from '../src/http/configure-app';
+import { EventBus, InProcessEventBus } from '../src/realtime/event-bus';
 import { PrismaService } from '../src/infra/prisma.service';
 import { FakePasswordHasher, FakeTokenService, InMemoryUserRepository } from './fakes';
 
@@ -19,6 +20,8 @@ describe('auth over HTTP', () => {
     process.env.ADMIN_PASSWORD = 'admin-password';
 
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+      .overrideProvider(EventBus)
+      .useValue(new InProcessEventBus())
       .overrideProvider(PrismaService)
       .useValue({})
       .overrideProvider(OrderRepository)

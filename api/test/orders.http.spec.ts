@@ -4,6 +4,7 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { TokenService, UserRepository, type Actor } from '../src/application/auth.ports';
 import { configureApp } from '../src/http/configure-app';
+import { EventBus, InProcessEventBus } from '../src/realtime/event-bus';
 import { PrismaService } from '../src/infra/prisma.service';
 import { FakeTokenService, InMemoryUserRepository } from './fakes';
 
@@ -30,6 +31,8 @@ describeWithDatabase('orders API over HTTP', () => {
     process.env.ADMIN_PASSWORD = 'admin-password';
 
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+      .overrideProvider(EventBus)
+      .useValue(new InProcessEventBus())
       .overrideProvider(UserRepository)
       .useValue(new InMemoryUserRepository())
       .overrideProvider(TokenService)

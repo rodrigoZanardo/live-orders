@@ -44,6 +44,9 @@ export abstract class OrderRepository {
   /** Events with `seq` greater than `after`, oldest first, at most `limit`. */
   abstract findEventsAfter(after: number, limit: number): Promise<OrderEvent[]>;
 
+  /** The highest event seq, or 0 when there are no events. */
+  abstract lastSeq(): Promise<number>;
+
   /** Every event of one order, oldest first. */
   abstract findEventsOf(orderId: string): Promise<OrderEvent[]>;
 }

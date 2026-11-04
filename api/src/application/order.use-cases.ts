@@ -6,6 +6,7 @@ import { AppError } from '../domain/errors';
 import { Order, type DeliveryAddress, type OrderItem } from '../domain/order';
 import type { OrderStatus } from '../domain/order-status';
 import type { Actor } from './auth.ports';
+import { LiveEvents } from './live-events';
 import { OrderRepository, type OrderEvent } from './order-repository';
 
 /** An event with the current state of its order, as the board and the webhooks receive it. */
@@ -21,14 +22,20 @@ export type NewCounterOrder = {
 
 @Injectable()
 export class CreateOrderUseCase {
-  constructor(private readonly orders: OrderRepository) {}
+  constructor(
+    private readonly orders: OrderRepository,
+    private readonly live: LiveEvents,
+  ) {}
 
   async execute(input: NewCounterOrder, actor: Actor, now = new Date()): Promise<EventWithOrder> {
     const day = businessDay(now, businessTimeZone());
     const build = (number: number) =>
       Order.create({ ...input, id: randomUUID(), number, channel: 'COUNTER', now });
     const { order, event } = await this.orders.create(day, build, actor.email);
-    return { ...event, order };
+    // after the commit, never inside the transaction
+    const created = { ...event, order };
+    await this.live.publish(created);
+    return created;
   }
 }
 
@@ -57,7 +64,10 @@ export class GetOrderUseCase {
 
 @Injectable()
 export class MoveOrderUseCase {
-  constructor(private readonly orders: OrderRepository) {}
+  constructor(
+    private readonly orders: OrderRepository,
+    private readonly live: LiveEvents,
+  ) {}
 
   async execute(
     input: { id: string; to: OrderStatus; version: number },
@@ -70,7 +80,9 @@ export class MoveOrderUseCase {
     }
     order.moveTo(input.to, input.version, now);
     const event = await this.orders.saveMove(order, actor.email);
-    return { ...event, order };
+    const moved = { ...event, order };
+    await this.live.publish(moved);
+    return moved;
   }
 }
 
