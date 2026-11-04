@@ -4,7 +4,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { PasswordHasher, TokenService, UserRepository } from './application/auth.ports';
 import {
   CreateUserUseCase,
-  EnsureAdminUseCase,
+  EnsureUserUseCase,
   ListUsersUseCase,
   LoginUseCase,
 } from './application/auth.use-cases';
@@ -132,7 +132,7 @@ import { AddressController, IncomingWebhookController } from './http/webhooks.co
     LoginUseCase,
     CreateUserUseCase,
     ListUsersUseCase,
-    EnsureAdminUseCase,
+    EnsureUserUseCase,
     CreateOrderUseCase,
     ListOrdersUseCase,
     GetOrderUseCase,
@@ -141,9 +141,19 @@ import { AddressController, IncomingWebhookController } from './http/webhooks.co
   ],
 })
 export class AppModule implements OnApplicationBootstrap {
-  constructor(private readonly ensureAdmin: EnsureAdminUseCase) {}
+  constructor(private readonly ensureUser: EnsureUserUseCase) {}
 
   async onApplicationBootstrap(): Promise<void> {
-    await this.ensureAdmin.execute(requiredEnv('ADMIN_EMAIL'), requiredEnv('ADMIN_PASSWORD'));
+    await this.ensureUser.execute(
+      requiredEnv('ADMIN_EMAIL'),
+      requiredEnv('ADMIN_PASSWORD'),
+      'ADMIN',
+    );
+    // optional public demo account: STAFF, so visitors can move orders but not manage users or webhooks
+    const demoEmail = process.env.DEMO_EMAIL?.trim();
+    const demoPassword = process.env.DEMO_PASSWORD;
+    if (demoEmail && demoPassword) {
+      await this.ensureUser.execute(demoEmail, demoPassword, 'STAFF');
+    }
   }
 }

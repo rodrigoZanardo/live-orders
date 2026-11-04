@@ -1,7 +1,7 @@
 import { JwtService } from '@nestjs/jwt';
 import {
   CreateUserUseCase,
-  EnsureAdminUseCase,
+  EnsureUserUseCase,
   LoginUseCase,
 } from '../src/application/auth.use-cases';
 import { AppError } from '../src/domain/errors';
@@ -130,14 +130,14 @@ describe('LoginUseCase', () => {
   });
 });
 
-describe('CreateUserUseCase and EnsureAdminUseCase', () => {
+describe('CreateUserUseCase and EnsureUserUseCase', () => {
   it('refuses a taken email and creates the admin only once', async () => {
     const users = new InMemoryUserRepository();
     const createUser = new CreateUserUseCase(users, new FakePasswordHasher());
-    const ensureAdmin = new EnsureAdminUseCase(users, createUser);
+    const ensureAdmin = new EnsureUserUseCase(users, createUser);
 
-    await ensureAdmin.execute('admin@example.com', 'admin-password');
-    await ensureAdmin.execute('ADMIN@example.com', 'other-password');
+    await ensureAdmin.execute('admin@example.com', 'admin-password', 'ADMIN');
+    await ensureAdmin.execute('ADMIN@example.com', 'other-password', 'STAFF');
 
     expect((await users.findAll()).map((user) => [user.email, user.role])).toEqual([
       ['admin@example.com', 'ADMIN'],

@@ -85,18 +85,18 @@ export class ListUsersUseCase {
   }
 }
 
-/** Creates the first admin from env on start; does nothing when that email already exists. */
+/** Creates a user from env on start (first admin, demo account); does nothing when the email exists. */
 @Injectable()
-export class EnsureAdminUseCase {
+export class EnsureUserUseCase {
   constructor(
     private readonly users: UserRepository,
     private readonly createUser: CreateUserUseCase,
   ) {}
 
-  async execute(email: string, password: string): Promise<void> {
+  async execute(email: string, password: string, role: Role): Promise<void> {
     if (await this.users.findByEmail(User.normalizeEmail(email))) {
       return;
     }
-    await this.createUser.execute({ email, password, role: 'ADMIN' });
+    await this.createUser.execute({ email, password, role });
   }
 }
