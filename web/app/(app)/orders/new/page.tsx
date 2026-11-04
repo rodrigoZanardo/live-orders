@@ -5,7 +5,7 @@ import { currentRole } from '@/lib/api';
 
 export default async function NewOrderPage() {
   const role = await currentRole();
-  if (role !== 'STAFF' && role !== 'ADMIN') redirect('/');
+  if (role !== 'STAFF' && role !== 'ADMIN') redirect('/gerencia');
   const t = await getTranslations('order');
   return (
     <div className="space-y-4">

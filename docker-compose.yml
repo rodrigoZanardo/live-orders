@@ -16,11 +16,21 @@ services:
       interval: 2s
       retries: 20
 
+  # stands in for the Stock Manager stock service; point STOCK_API_URL/STOCK_API_TOKEN in .env at the real one
+  stock-stub:
+    image: node:22-alpine
+    command: node /app/stock-stub.mjs
+    working_dir: /app
+    volumes: [./scripts/stock-stub.mjs:/app/stock-stub.mjs:ro]
+    environment:
+      STOCK_API_TOKEN: ${STOCK_API_TOKEN:-local-stub-token}
+
   api:
     build: { context: ., dockerfile: api/Dockerfile }
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
+      stock-stub: { condition: service_started }
     environment:
       DATABASE_URL: postgresql://live:live@postgres:5432/live_orders
       REDIS_URL: redis://redis:6379
@@ -30,6 +40,9 @@ services:
       WEBHOOK_INCOMING_SECRET: ${WEBHOOK_INCOMING_SECRET:-dev-incoming}
       LATE_AFTER_MINUTES: ${LATE_AFTER_MINUTES:-10}
       WEB_ORIGIN: http://localhost:3000
+      # counter orders are refused until the stock answers
+      STOCK_API_URL: ${STOCK_API_URL:-http://stock-stub:3040}
+      STOCK_API_TOKEN: ${STOCK_API_TOKEN:-local-stub-token}
     ports: ['3001:3001']
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://localhost:3001/health']
@@ -40,10 +53,13 @@ services:
     build: { context: ., dockerfile: web/Dockerfile }
     depends_on:
       api: { condition: service_healthy }
+      stock-stub: { condition: service_started }
     environment:
       API_URL: http://api:3001
       PUBLIC_API_URL: http://localhost:3001
       COOKIE_SECURE: 'false'
+      STOCK_API_URL: ${STOCK_API_URL:-http://stock-stub:3040}
+      STOCK_API_TOKEN: ${STOCK_API_TOKEN:-local-stub-token}
     ports: ['3000:3000']
 
 volumes:

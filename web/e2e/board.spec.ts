@@ -75,6 +75,21 @@ test('a move on one board shows on another board within 2 seconds', async ({ bro
   });
 });
 
+test('dragging a card to the next lane moves it on another board', async ({ browser }) => {
+  const kitchen = await signedInPage(browser);
+  const counter = await signedInPage(browser);
+  const number = await createOrder(`E2E drag ${randomUUID().slice(0, 6)}`);
+  await expect(card(counter, number)).toBeVisible();
+
+  await card(kitchen, number).dragTo(column(kitchen, 'Preparing'));
+
+  await expect(
+    column(counter, 'Preparing')
+      .locator('article')
+      .filter({ hasText: `#${number}` }),
+  ).toBeVisible({ timeout: 2000 });
+});
+
 test('an order from the delivery platform webhook appears on the board', async ({ browser }) => {
   const board = await signedInPage(browser);
   const externalId = `e2e-${randomUUID().slice(0, 8)}`;
@@ -117,7 +132,7 @@ test('an expired session goes back to sign in instead of looping', async ({ brow
     { name: 'token', value: 'expired-or-forged', url: 'http://localhost:3000' },
   ]);
   const page = await context.newPage();
-  await page.goto('/');
+  await page.goto('/gerencia');
   await expect(page).toHaveURL(/\/login$/);
   await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
 });

@@ -8,6 +8,7 @@ const STATUS: Record<ErrorKind, HttpStatus> = {
   forbidden: HttpStatus.FORBIDDEN,
   conflict: HttpStatus.CONFLICT,
   too_many: HttpStatus.TOO_MANY_REQUESTS,
+  unavailable: HttpStatus.SERVICE_UNAVAILABLE,
 };
 
 type JsonResponse = { status(code: number): { json(body: unknown): void } };

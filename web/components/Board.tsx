@@ -2,14 +2,16 @@
 
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { applyEvents, column, hasGap, initialBoard, type BoardState } from '@/lib/board';
+import { moveOrder } from '@/app/actions';
+import { applyEvents, canDrop, column, hasGap, initialBoard, type BoardState } from '@/lib/board';
 import {
   isEventWithOrder,
   parseLiveMessage,
   reconnectDelay,
   type ConnectionState,
 } from '@/lib/live-connection';
-import type { EventWithOrder, Order, OrderStatus, Role } from '@/lib/types';
+import type { ApiFailure, EventWithOrder, Order, OrderStatus, Role } from '@/lib/types';
+import { useErrorText } from './form';
 import { OrderCard } from './OrderCard';
 import { useNewOrderAlert } from './useNewOrderAlert';
 
@@ -48,7 +50,19 @@ export function Board({
   const [connection, setConnection] = useState<ConnectionState>('reconnecting');
   const boardRef = useRef(board);
   const alert = useNewOrderAlert();
+  const errorText = useErrorText();
   const canMove = role === 'STAFF' || role === 'ADMIN';
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dropError, setDropError] = useState<ApiFailure | null>(null);
+  const dragged = draggedId === null ? undefined : board.orders[draggedId];
+
+  // same move as the card buttons: the API checks the version and the transition
+  const drop = async (order: Order, to: OrderStatus) => {
+    setDraggedId(null);
+    setDropError(null);
+    const result = await moveOrder(order.id, to, order.version);
+    if (result.error) setDropError(result.error);
+  };
 
   const apply = useCallback(
     (events: EventWithOrder[]) => {
@@ -160,11 +174,23 @@ export function Board({
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {COLUMNS.map((columnStatus) => {
           const items = column(board, columnStatus);
+          const dropTarget = dragged && canDrop(dragged.status, columnStatus) ? dragged : null;
           return (
             <section
               key={columnStatus}
               aria-labelledby={`col-${columnStatus}`}
-              className="flex min-h-48 flex-col rounded-xl bg-panel-muted/70 p-3"
+              className={`flex min-h-48 flex-col rounded-xl bg-panel-muted/70 p-3 ${
+                dropTarget ? 'ring-2 ring-brand' : ''
+              }`}
+              onDragOver={dropTarget ? (event) => event.preventDefault() : undefined}
+              onDrop={
+                dropTarget
+                  ? (event) => {
+                      event.preventDefault();
+                      void drop(dropTarget, columnStatus);
+                    }
+                  : undefined
+              }
             >
               <h2
                 id={`col-${columnStatus}`}
@@ -176,7 +202,12 @@ export function Board({
               <ul className="flex flex-col gap-3">
                 {items.map((order) => (
                   <li key={order.id}>
-                    <OrderCard order={order} canMove={canMove} />
+                    <OrderCard
+                      order={order}
+                      canMove={canMove}
+                      onDragStart={setDraggedId}
+                      onDragEnd={() => setDraggedId(null)}
+                    />
                   </li>
                 ))}
               </ul>
@@ -184,6 +215,13 @@ export function Board({
             </section>
           );
         })}
+      </div>
+      <div aria-live="polite">
+        {dropError && (
+          <p role="alert" className="text-sm text-danger">
+            {errorText(dropError)}
+          </p>
+        )}
       </div>
 
       <details className="panel p-3">

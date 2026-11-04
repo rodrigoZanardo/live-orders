@@ -31,7 +31,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
 
   return (
     <div className="max-w-3xl space-y-6">
-      <Link href="/" className="text-sm text-brand hover:underline">
+      <Link href="/gerencia" className="text-sm text-brand hover:underline">
         ← {t('back')}
       </Link>
       <div className="flex flex-wrap items-center gap-3">

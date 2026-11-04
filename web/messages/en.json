@@ -26,6 +26,32 @@
     "STAFF": "Staff",
     "VIEWER": "Viewer"
   },
+  "home": {
+    "subtitle": "Pick a view to start.",
+    "customer": "Customer view",
+    "customerHint": "Products in stock, and an order for the counter.",
+    "management": "Management view",
+    "managementHint": "The live board the kitchen and staff use."
+  },
+  "catalog": {
+    "title": "Products in stock",
+    "back": "Back to start",
+    "products": "Products",
+    "empty": "No products yet.",
+    "unavailable": "The product list is unavailable right now. Try again in a moment.",
+    "inStock": "Available",
+    "available": "{count} available",
+    "outOfStock": "Out of stock",
+    "upTo": "Up to {max} for this order.",
+    "yourName": "Customer name",
+    "pick": "Choose at least one product.",
+    "submit": "Place order",
+    "submitting": "Placing…",
+    "created": "Order #{number} created.",
+    "staffOnly": "Only staff can place orders.",
+    "signIn": "Sign in as staff to place an order.",
+    "signInLink": "Sign in"
+  },
   "login": {
     "title": "Sign in",
     "subtitle": "Orders move here the moment the kitchen moves them.",
@@ -158,6 +184,9 @@
     "CUSTOMER_NAME_INVALID": "Customer name must have 1 to {max} characters.",
     "CEP_INVALID": "CEP must have 8 digits.",
     "EXTERNAL_ID_REQUIRED": "Orders from the delivery platform need their external id.",
+    "SKU_NOT_IN_STOCK": "{sku} is not a product in stock.",
+    "STOCK_INSUFFICIENT": "Not enough stock for {sku}: {available} available.",
+    "STOCK_UNAVAILABLE": "Stock is unavailable right now. Try again in a moment.",
     "IDEMPOTENCY_KEY_REUSED": "This Idempotency-Key was already used for another order.",
     "WEBHOOK_SIGNATURE_INVALID": "Webhook signature is missing or wrong.",
     "WEBHOOK_TOO_OLD": "Webhook timestamp is too old or in the future.",

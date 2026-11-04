@@ -4,11 +4,13 @@ import { businessTimeZone } from '../env';
 import { businessDay, isBusinessDay } from '../domain/business-day';
 import { AppError } from '../domain/errors';
 import { Order, type DeliveryAddress, type OrderItem } from '../domain/order';
+import { assertInStock } from '../domain/stock-check';
 import type { OrderStatus } from '../domain/order-status';
 import type { Actor } from './auth.ports';
 import { LateOrderTimer } from './late-orders';
 import { LiveEvents } from './live-events';
 import { OrderRepository, type OrderEvent } from './order-repository';
+import { StockAvailability } from './stock-availability';
 
 /** An event with the current state of its order, as the board and the webhooks receive it. */
 export type EventWithOrder = OrderEvent & { order: Order };
@@ -26,9 +28,11 @@ export class CreateOrderUseCase {
   constructor(
     private readonly orders: OrderRepository,
     private readonly live: LiveEvents,
+    private readonly stock: StockAvailability,
   ) {}
 
   async execute(input: NewCounterOrder, actor: Actor, now = new Date()): Promise<EventWithOrder> {
+    await this.checkStock(input.items);
     const day = businessDay(now, businessTimeZone());
     const build = (number: number) =>
       Order.create({ ...input, id: randomUUID(), number, channel: 'COUNTER', now });
@@ -37,6 +41,12 @@ export class CreateOrderUseCase {
     const created = { ...event, order };
     await this.live.publish(created);
     return created;
+  }
+
+  /** Counter orders only; platform orders are already paid and are not checked here. */
+  private async checkStock(items: OrderItem[]): Promise<void> {
+    const skus = [...new Set(items.map((item) => item.sku))];
+    assertInStock(items, await this.stock.available(skus));
   }
 }
 

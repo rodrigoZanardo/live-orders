@@ -4,6 +4,8 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { TokenService, UserRepository, type Actor } from '../src/application/auth.ports';
 import { LateOrderTimer } from '../src/application/late-orders';
+import { StockAvailability } from '../src/application/stock-availability';
+import { FakeStockAvailability } from './fake-stock';
 import { DeliveryQueue } from '../src/application/outgoing-webhooks';
 import { CleanupQueue } from '../src/infra/cleanup.queue';
 import { configureApp } from '../src/http/configure-app';
@@ -46,6 +48,8 @@ describeWithDatabase('orders API over HTTP', () => {
       .useValue(new InMemoryUserRepository())
       .overrideProvider(TokenService)
       .useValue(tokens)
+      .overrideProvider(StockAvailability)
+      .useValue(new FakeStockAvailability())
       .compile();
     app = moduleRef.createNestApplication();
     configureApp(app);

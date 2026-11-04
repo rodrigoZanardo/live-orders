@@ -1,4 +1,9 @@
-import type { EventWithOrder, Order, OrderStatus } from './types';
+import { NEXT_MOVES, type EventWithOrder, type Order, type OrderStatus } from './types';
+
+/** A card can be dropped on a lane only when that lane is one of its next moves; the API still checks the move. */
+export function canDrop(from: OrderStatus, to: OrderStatus): boolean {
+  return NEXT_MOVES[from].includes(to);
+}
 
 /** What the live board knows: every order by id, and the last event seq it applied. */
 export type BoardState = { orders: Record<string, Order>; lastSeq: number };

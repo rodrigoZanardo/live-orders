@@ -41,7 +41,7 @@ export async function login(input: { email: string; password: string }): Promise
   jar.set(TOKEN_COOKIE, result.data.token, options);
   // the role only shows or hides buttons; the API checks the token on every call
   jar.set(ROLE_COOKIE, result.data.user.role, options);
-  redirect('/');
+  redirect('/gerencia');
 }
 
 export async function logout(): Promise<void> {

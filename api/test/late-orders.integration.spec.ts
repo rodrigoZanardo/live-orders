@@ -5,6 +5,7 @@ import { BullLateOrderTimer } from '../src/infra/late-orders.queue';
 import { PrismaOrderRepository } from '../src/infra/prisma-order.repository';
 import { PrismaService } from '../src/infra/prisma.service';
 import { InProcessEventBus } from '../src/realtime/event-bus';
+import { FakeStockAvailability } from './fake-stock';
 
 // Needs both a real database and Redis (CI sets DATABASE_URL and REDIS_URL).
 const redisUrl = process.env.REDIS_URL;
@@ -24,7 +25,7 @@ describeWithServices('late-order alert with a 1 s delay', () => {
     const bus = new InProcessEventBus();
     bus.onMessage((message) => messages.push(message));
     timer = new BullLateOrderTimer(redisUrl ?? '', 1000, new MarkLateUseCase(orders, bus));
-    create = new CreateOrderUseCase(orders, bus);
+    create = new CreateOrderUseCase(orders, bus, new FakeStockAvailability());
     move = new MoveOrderUseCase(orders, bus, timer);
     await db.event.deleteMany();
     await db.order.deleteMany();

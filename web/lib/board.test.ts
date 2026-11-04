@@ -1,4 +1,4 @@
-import { applyEvents, column, hasGap, initialBoard, isLate } from './board';
+import { applyEvents, canDrop, column, hasGap, initialBoard, isLate } from './board';
 import type { EventWithOrder, Order, OrderStatus } from './types';
 
 function order(id: string, status: OrderStatus, version: number, number = 1): Order {
@@ -72,6 +72,13 @@ describe('board reducer', () => {
     const state = initialBoard([], 4);
     expect(hasGap(state, 5)).toBe(false);
     expect(hasGap(state, 7)).toBe(true);
+  });
+
+  it('allows a drop only on a next move of the card', () => {
+    expect(canDrop('RECEIVED', 'PREPARING')).toBe(true);
+    expect(canDrop('RECEIVED', 'READY')).toBe(false);
+    expect(canDrop('PREPARING', 'PREPARING')).toBe(false);
+    expect(canDrop('DELIVERED', 'RECEIVED')).toBe(false);
   });
 
   it('marks only PREPARING orders with lateSince as late', () => {

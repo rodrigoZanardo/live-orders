@@ -27,7 +27,17 @@ function useMinutesSince(iso: string): number {
   return Math.max(0, Math.floor((now - new Date(iso).getTime()) / 60_000));
 }
 
-export function OrderCard({ order, canMove }: { order: Order; canMove: boolean }) {
+export function OrderCard({
+  order,
+  canMove,
+  onDragStart,
+  onDragEnd,
+}: {
+  order: Order;
+  canMove: boolean;
+  onDragStart?: (id: string) => void;
+  onDragEnd?: () => void;
+}) {
   const t = useTranslations('board');
   const moves = useTranslations('moves');
   const errorText = useErrorText();
@@ -35,6 +45,7 @@ export function OrderCard({ order, canMove }: { order: Order; canMove: boolean }
   const [error, setError] = useState<ApiFailure | null>(null);
   const minutes = useMinutesSince(order.statusChangedAt);
   const late = isLate(order);
+  const canAct = canMove && NEXT_MOVES[order.status].length > 0;
 
   const move = (to: OrderStatus) =>
     start(async () => {
@@ -53,9 +64,17 @@ export function OrderCard({ order, canMove }: { order: Order; canMove: boolean }
 
   return (
     <article
+      draggable={canAct}
+      onDragStart={(event) => {
+        // Firefox starts no drag without some data set
+        event.dataTransfer.setData('text/plain', order.id);
+        event.dataTransfer.effectAllowed = 'move';
+        onDragStart?.(order.id);
+      }}
+      onDragEnd={onDragEnd}
       className={`ticket-enter rounded-lg border border-l-[6px] bg-panel p-3 ${
         late ? 'border-danger ring-2 ring-danger/40' : `border-line ${STRIPE[order.status]}`
-      }`}
+      } ${canAct ? 'cursor-grab' : ''}`}
     >
       <header className="flex items-start justify-between gap-2">
         <Link
@@ -83,7 +102,7 @@ export function OrderCard({ order, canMove }: { order: Order; canMove: boolean }
         {minutes === 0 ? t('justNow') : t('since', { minutes })}
       </p>
 
-      {canMove && NEXT_MOVES[order.status].length > 0 && (
+      {canAct && (
         <div className="mt-3 flex flex-wrap gap-2">
           {NEXT_MOVES[order.status].map((to) => (
             <button

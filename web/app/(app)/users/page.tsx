@@ -4,7 +4,7 @@ import { UserForm } from '@/components/UserForm';
 import { api, currentRole } from '@/lib/api';
 
 export default async function UsersPage() {
-  if ((await currentRole()) !== 'ADMIN') redirect('/');
+  if ((await currentRole()) !== 'ADMIN') redirect('/gerencia');
   const users = await api.users();
   const t = await getTranslations('users');
   const roles = await getTranslations('roles');

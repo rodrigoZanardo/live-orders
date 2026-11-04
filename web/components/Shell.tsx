@@ -51,7 +51,7 @@ export function Shell({
             aria-label={t('menu')}
             className="order-last -mx-4 flex w-[calc(100%+2rem)] gap-5 overflow-x-auto px-4 md:order-none md:mx-0 md:w-auto md:px-0"
           >
-            <NavLink href="/">{t('board')}</NavLink>
+            <NavLink href="/gerencia">{t('board')}</NavLink>
             {canCreate && <NavLink href="/orders/new">{t('newOrder')}</NavLink>}
             {role === 'ADMIN' && (
               <>

@@ -25,6 +25,15 @@ const CATALOG = {
     kind: 'rule',
     message: 'Orders from the delivery platform need their external id.',
   },
+  SKU_NOT_IN_STOCK: { kind: 'rule', message: 'SKU {sku} is not a product in stock.' },
+  STOCK_INSUFFICIENT: {
+    kind: 'rule',
+    message: 'Not enough stock for {sku}: {available} available.',
+  },
+  STOCK_UNAVAILABLE: {
+    kind: 'unavailable',
+    message: 'Stock is unavailable right now. Try again in a moment.',
+  },
   IDEMPOTENCY_KEY_REUSED: {
     kind: 'conflict',
     message: 'This Idempotency-Key was already used for another order.',
@@ -59,7 +68,7 @@ const CATALOG = {
 } as const satisfies Record<string, { kind: ErrorKind; message: string }>;
 
 export type ErrorKind =
-  'rule' | 'not_found' | 'unauthorized' | 'forbidden' | 'conflict' | 'too_many';
+  'rule' | 'not_found' | 'unauthorized' | 'forbidden' | 'conflict' | 'too_many' | 'unavailable';
 export type ErrorCode = keyof typeof CATALOG;
 export type ErrorParams = Record<string, string | number>;
 

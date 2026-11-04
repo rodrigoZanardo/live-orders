@@ -55,6 +55,8 @@ import { toEventWithOrderResponse } from './http/order.dto';
 import { PrismaWebhookRepository } from './infra/prisma-webhook.repository';
 import { BullDeliveryQueue, FetchWebhookSender } from './infra/webhook-delivery.queue';
 import { ViaCepClient } from './infra/viacep.client';
+import { StockAvailability } from './application/stock-availability';
+import { StockClient } from './infra/stock.client';
 import { AddressController, IncomingWebhookController } from './http/webhooks.controller';
 
 @Module({
@@ -115,6 +117,12 @@ import { AddressController, IncomingWebhookController } from './http/webhooks.co
     ReceivePlatformOrderUseCase,
     CleanupIdempotencyKeysUseCase,
     { provide: AddressLookup, useFactory: () => new ViaCepClient() },
+    {
+      provide: StockAvailability,
+      // not required at boot: without them the API boots and refuses counter orders (STOCK_UNAVAILABLE)
+      useFactory: () =>
+        new StockClient(process.env.STOCK_API_URL ?? '', process.env.STOCK_API_TOKEN ?? ''),
+    },
     {
       provide: CleanupQueue,
       inject: [CleanupIdempotencyKeysUseCase, RequeueStaleDeliveriesUseCase],

@@ -26,6 +26,32 @@
     "STAFF": "Equipe",
     "VIEWER": "Visualizador"
   },
+  "home": {
+    "subtitle": "Escolha uma tela para começar.",
+    "customer": "Tela do cliente",
+    "customerHint": "Produtos em estoque e um pedido para o balcão.",
+    "management": "Tela de gestão",
+    "managementHint": "O quadro ao vivo que a cozinha e a equipe usam."
+  },
+  "catalog": {
+    "title": "Produtos em estoque",
+    "back": "Voltar ao início",
+    "products": "Produtos",
+    "empty": "Nenhum produto ainda.",
+    "unavailable": "A lista de produtos não está disponível agora. Tente de novo em instantes.",
+    "inStock": "Disponível",
+    "available": "{count} disponíveis",
+    "outOfStock": "Esgotado",
+    "upTo": "Até {max} neste pedido.",
+    "yourName": "Nome do cliente",
+    "pick": "Escolha pelo menos um produto.",
+    "submit": "Fazer pedido",
+    "submitting": "Enviando…",
+    "created": "Pedido #{number} criado.",
+    "staffOnly": "Só a equipe pode fazer pedidos.",
+    "signIn": "Entre como equipe para fazer um pedido.",
+    "signInLink": "Entrar"
+  },
   "login": {
     "title": "Entrar",
     "subtitle": "Os pedidos mudam aqui no instante em que a cozinha os move.",
@@ -158,6 +184,9 @@
     "CUSTOMER_NAME_INVALID": "O nome do cliente deve ter de 1 a {max} caracteres.",
     "CEP_INVALID": "O CEP deve ter 8 dígitos.",
     "EXTERNAL_ID_REQUIRED": "Pedidos da plataforma de entrega precisam do id externo.",
+    "SKU_NOT_IN_STOCK": "{sku} não é um produto em estoque.",
+    "STOCK_INSUFFICIENT": "Estoque insuficiente para {sku}: {available} disponível.",
+    "STOCK_UNAVAILABLE": "O estoque está indisponível agora. Tente de novo em instantes.",
     "IDEMPOTENCY_KEY_REUSED": "Esta Idempotency-Key já foi usada em outro pedido.",
     "WEBHOOK_SIGNATURE_INVALID": "Assinatura do webhook ausente ou incorreta.",
     "WEBHOOK_TOO_OLD": "Horário do webhook muito antigo ou no futuro.",

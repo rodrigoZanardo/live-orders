@@ -21,7 +21,7 @@ export default async function WebhooksPage({
 }: {
   searchParams: Promise<{ status?: string }>;
 }) {
-  if ((await currentRole()) !== 'ADMIN') redirect('/');
+  if ((await currentRole()) !== 'ADMIN') redirect('/gerencia');
   const status = asStatus((await searchParams).status);
   const [subscriptions, deliveries] = await Promise.all([
     api.subscriptions(),
