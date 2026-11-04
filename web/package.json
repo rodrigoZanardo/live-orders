@@ -2,14 +2,29 @@
   "name": "@live/web",
   "private": true,
   "scripts": {
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start -p 3000",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "jest --passWithNoTests"
   },
   "jest": {
-    "preset": "ts-jest",
     "testEnvironment": "node",
     "roots": [
       "<rootDir>/lib"
-    ]
+    ],
+    "transform": {
+      "^.+[.]ts$": [
+        "ts-jest",
+        {
+          "tsconfig": {
+            "module": "commonjs",
+            "esModuleInterop": true,
+            "strict": true,
+            "resolveJsonModule": true
+          }
+        }
+      ]
+    }
   }
 }

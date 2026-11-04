@@ -10,7 +10,8 @@ See [docs/PLAN.md](docs/PLAN.md) for what to build and [docs/HANDOFF.md](docs/HA
 ## Layout
 
 - `api/`: NestJS service (rules in [api/AGENTS.md](api/AGENTS.md)).
-- `web/`: Next.js app (rules in [web/AGENTS.md](web/AGENTS.md)).
+- `web/`: Next.js 15 app: board, order form, order detail, webhooks, users; EN/PT, Auto/Light/Dark (rules in [web/AGENTS.md](web/AGENTS.md)).
+- `scripts/`: `delivery-platform.mjs` (signs and sends demo orders), `webhook-receiver.mjs` (prints outgoing webhooks).
 - `.agents/skills/`: step-by-step skills: `backend-feature`, `frontend-feature`, `realtime-event`, `review-checklist`.
 - `docs/`: plan, handoff and later the webhook and deploy docs.
 

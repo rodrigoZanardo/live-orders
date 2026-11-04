@@ -8,7 +8,7 @@
   "scripts": {
     "test": "npm test --workspaces",
     "typecheck": "npm run typecheck --workspaces",
-    "lint": "eslint .",
+    "lint": "eslint . --ignore-pattern **/next-env.d.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
