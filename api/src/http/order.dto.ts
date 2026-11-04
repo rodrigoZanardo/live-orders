@@ -92,6 +92,12 @@ export class OrderResponse {
   @ApiProperty({ enum: ORDER_STATUSES }) status!: OrderStatus;
   @ApiProperty() version!: number;
   @ApiProperty() statusChangedAt!: Date;
+  @ApiProperty({
+    type: Date,
+    nullable: true,
+    description: 'Set while the order is late in PREPARING',
+  })
+  lateSince!: Date | null;
   @ApiProperty({ type: String, nullable: true }) externalId!: string | null;
   @ApiProperty() createdAt!: Date;
 }
@@ -128,6 +134,7 @@ export function toOrderResponse(order: Order): OrderResponse {
     status: order.status,
     version: order.version,
     statusChangedAt: order.statusChangedAt,
+    lateSince: order.lateSince,
     externalId: order.externalId,
     createdAt: order.createdAt,
   };

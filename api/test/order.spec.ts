@@ -29,6 +29,7 @@ function orderIn(status: OrderStatus): Order {
     status,
     version: 3,
     statusChangedAt: now,
+    lateSince: null,
     externalId: null,
     createdAt: now,
   });
@@ -165,5 +166,27 @@ describe('Order.moveTo', () => {
     expect(error?.code).toBe('ORDER_CHANGED');
     expect(error?.kind).toBe('conflict');
     expect(order.status).toBe('RECEIVED');
+  });
+});
+
+describe('Order.markLate', () => {
+  it('flags an order still PREPARING at the same version, once', () => {
+    const order = orderIn('PREPARING');
+    expect(order.markLate(3, later)).toBe(true);
+    expect(order.lateSince).toEqual(later);
+    expect(order.version).toBe(3);
+    expect(order.markLate(3, later)).toBe(false);
+  });
+
+  it('ignores an order that moved on or has another version', () => {
+    expect(orderIn('READY').markLate(3, later)).toBe(false);
+    expect(orderIn('PREPARING').markLate(2, later)).toBe(false);
+  });
+
+  it('clears the flag on the next move', () => {
+    const order = orderIn('PREPARING');
+    order.markLate(3, later);
+    order.moveTo('READY', 3, later);
+    expect(order.lateSince).toBeNull();
   });
 });

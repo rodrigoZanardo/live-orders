@@ -39,6 +39,7 @@ enum OrderChannel {
 enum EventType {
   ORDER_CREATED
   ORDER_STATUS_CHANGED
+  ORDER_LATE
 }
 
 model Order {
@@ -51,6 +52,7 @@ model Order {
   status           OrderStatus
   version          Int
   statusChangedAt  DateTime
+  lateSince        DateTime?
   externalId       String?
   deliveryCep      String?
   deliveryStreet   String?

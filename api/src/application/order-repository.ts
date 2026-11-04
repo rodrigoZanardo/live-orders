@@ -1,7 +1,7 @@
 import type { Order } from '../domain/order';
 import type { OrderStatus } from '../domain/order-status';
 
-export const EVENT_TYPES = ['ORDER_CREATED', 'ORDER_STATUS_CHANGED'] as const;
+export const EVENT_TYPES = ['ORDER_CREATED', 'ORDER_STATUS_CHANGED', 'ORDER_LATE'] as const;
 export type EventType = (typeof EVENT_TYPES)[number];
 
 /** One row of the event log. `seq` orders every event of every order. */
@@ -33,6 +33,12 @@ export abstract class OrderRepository {
    * Throws ORDER_CHANGED when someone else saved first.
    */
   abstract saveMove(order: Order, actorEmail: string): Promise<OrderEvent>;
+
+  /**
+   * Saves the late flag set by `order.markLate`, only while the stored order is still PREPARING at
+   * the same version and not yet late, and writes ORDER_LATE. Returns null when it moved on first.
+   */
+  abstract saveLate(order: Order): Promise<OrderEvent | null>;
 
   abstract findById(id: string): Promise<Order | null>;
 

@@ -16,7 +16,9 @@ import {
   ListOrdersUseCase,
   MoveOrderUseCase,
 } from './application/order.use-cases';
-import { requiredEnv } from './env';
+import { lateAfterMs, requiredEnv } from './env';
+import { LateOrderTimer, MarkLateUseCase } from './application/late-orders';
+import { BullLateOrderTimer } from './infra/late-orders.queue';
 import { AppErrorFilter } from './http/app-error.filter';
 import { AuthController, UsersController } from './http/auth.controller';
 import { EventController, HealthController, OrderController } from './http/order.controller';
@@ -53,6 +55,13 @@ import { LiveGateway } from './realtime/live.gateway';
     { provide: EventBus, useFactory: () => new RedisEventBus(requiredEnv('REDIS_URL')) },
     { provide: LiveEvents, useExisting: EventBus },
     LiveGateway,
+    MarkLateUseCase,
+    {
+      provide: LateOrderTimer,
+      inject: [MarkLateUseCase],
+      useFactory: (markLate: MarkLateUseCase) =>
+        new BullLateOrderTimer(requiredEnv('REDIS_URL'), lateAfterMs(), markLate),
+    },
     LoginUseCase,
     CreateUserUseCase,
     ListUsersUseCase,

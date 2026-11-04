@@ -3,10 +3,11 @@ import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { TokenService, UserRepository, type Actor } from '../src/application/auth.ports';
+import { LateOrderTimer } from '../src/application/late-orders';
 import { configureApp } from '../src/http/configure-app';
 import { EventBus, InProcessEventBus } from '../src/realtime/event-bus';
 import { PrismaService } from '../src/infra/prisma.service';
-import { FakeTokenService, InMemoryUserRepository } from './fakes';
+import { FakeTokenService, InMemoryUserRepository, NoLateTimer } from './fakes';
 
 // The whole orders API on a real database (skipped without DATABASE_URL); tokens are faked.
 const describeWithDatabase = process.env.DATABASE_URL ? describe : describe.skip;
@@ -31,6 +32,8 @@ describeWithDatabase('orders API over HTTP', () => {
     process.env.ADMIN_PASSWORD = 'admin-password';
 
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+      .overrideProvider(LateOrderTimer)
+      .useValue(new NoLateTimer())
       .overrideProvider(EventBus)
       .useValue(new InProcessEventBus())
       .overrideProvider(UserRepository)

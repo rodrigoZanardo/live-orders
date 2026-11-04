@@ -4,6 +4,7 @@ import {
   UserRepository,
   type Actor,
 } from '../src/application/auth.ports';
+import { LateOrderTimer } from '../src/application/late-orders';
 import { AppError } from '../src/domain/errors';
 import { User } from '../src/domain/user';
 
@@ -97,5 +98,14 @@ export class FakeTokenService extends TokenService {
       return null;
     }
     return null;
+  }
+}
+
+/** Late timer that never fires; the BullMQ timer has its own integration test. */
+export class NoLateTimer extends LateOrderTimer {
+  readonly started: { orderId: string; version: number }[] = [];
+
+  async start(orderId: string, version: number): Promise<void> {
+    this.started.push({ orderId, version });
   }
 }

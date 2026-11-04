@@ -6,6 +6,7 @@ import { AppError } from '../domain/errors';
 import { Order, type DeliveryAddress, type OrderItem } from '../domain/order';
 import type { OrderStatus } from '../domain/order-status';
 import type { Actor } from './auth.ports';
+import { LateOrderTimer } from './late-orders';
 import { LiveEvents } from './live-events';
 import { OrderRepository, type OrderEvent } from './order-repository';
 
@@ -70,6 +71,7 @@ export class MoveOrderUseCase {
   constructor(
     private readonly orders: OrderRepository,
     private readonly live: LiveEvents,
+    private readonly lateTimer: LateOrderTimer,
   ) {}
 
   async execute(
@@ -85,6 +87,9 @@ export class MoveOrderUseCase {
     const event = await this.orders.saveMove(order, actor.email);
     const moved = { ...event, order };
     await this.live.publish(moved);
+    if (order.status === 'PREPARING') {
+      await this.lateTimer.start(order.id, order.version);
+    }
     return moved;
   }
 }

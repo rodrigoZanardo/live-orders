@@ -7,6 +7,9 @@ import { PrismaService } from './prisma.service';
 
 type OrderWithItems = OrderRow & { items: OrderItemRow[] };
 
+/** Who appears in the timeline for events the server raises by itself. */
+export const SYSTEM_ACTOR = 'system';
+
 const withItems = { items: { orderBy: { position: 'asc' } } } satisfies Prisma.OrderInclude;
 
 @Injectable()
@@ -84,6 +87,7 @@ export class PrismaOrderRepository extends OrderRepository {
           status: order.status,
           version: order.version,
           statusChangedAt: order.statusChangedAt,
+          lateSince: null,
         },
       });
       if (count === 0 || !previous) {
@@ -99,6 +103,30 @@ export class PrismaOrderRepository extends OrderRepository {
           version: order.version,
           actorEmail,
           createdAt: order.statusChangedAt,
+        },
+      });
+      return toEvent(event);
+    });
+  }
+
+  async saveLate(order: Order): Promise<OrderEvent | null> {
+    return this.db.$transaction(async (tx) => {
+      const { count } = await tx.order.updateMany({
+        where: { id: order.id, version: order.version, status: 'PREPARING', lateSince: null },
+        data: { lateSince: order.lateSince },
+      });
+      if (count === 0) {
+        return null;
+      }
+      const event = await tx.event.create({
+        data: {
+          type: 'ORDER_LATE',
+          orderId: order.id,
+          fromStatus: order.status,
+          toStatus: order.status,
+          version: order.version,
+          actorEmail: SYSTEM_ACTOR,
+          createdAt: order.lateSince ?? new Date(),
         },
       });
       return toEvent(event);
@@ -165,6 +193,7 @@ function toOrder(row: OrderWithItems): Order {
     status: row.status,
     version: row.version,
     statusChangedAt: row.statusChangedAt,
+    lateSince: row.lateSince,
     externalId: row.externalId,
     createdAt: row.createdAt,
   });

@@ -37,6 +37,8 @@ export type OrderProps = {
   /** Increases on every change; the repository uses it for optimistic locking. */
   version: number;
   statusChangedAt: Date;
+  /** Set when the order stayed in PREPARING too long; cleared by the next move. */
+  lateSince: Date | null;
   /** Id from the delivery platform, unique with `channel`. */
   externalId: string | null;
   createdAt: Date;
@@ -81,6 +83,7 @@ export class Order {
       status: 'RECEIVED',
       version: 1,
       statusChangedAt: input.now,
+      lateSince: null,
       externalId,
       createdAt: input.now,
     });
@@ -130,6 +133,10 @@ export class Order {
     return this.props.statusChangedAt;
   }
 
+  get lateSince(): Date | null {
+    return this.props.lateSince;
+  }
+
   get externalId(): string | null {
     return this.props.externalId;
   }
@@ -155,6 +162,22 @@ export class Order {
     this.props.status = to;
     this.props.version += 1;
     this.props.statusChangedAt = now;
+    this.props.lateSince = null;
+  }
+
+  /**
+   * Flags an order that is still PREPARING at the version the late timer was started for.
+   * Returns false (and changes nothing) when it has moved on since, or is already late.
+   * Does not bump the version: being late is not a move, and staff can still move it.
+   */
+  markLate(startedAtVersion: number, now: Date): boolean {
+    const stillWaiting =
+      this.props.status === 'PREPARING' && this.props.version === startedAtVersion;
+    if (!stillWaiting || this.props.lateSince) {
+      return false;
+    }
+    this.props.lateSince = now;
+    return true;
   }
 }
 
