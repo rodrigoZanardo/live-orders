@@ -27,12 +27,10 @@ export function BrandMark({ className = 'size-8' }: { className?: string }) {
 export function Shell({
   role,
   theme,
-  apiDocsUrl,
   children,
 }: {
   role: Role | null;
   theme: Theme;
-  apiDocsUrl: string;
   children: ReactNode;
 }) {
   const t = useTranslations('nav');
@@ -59,9 +57,6 @@ export function Shell({
                 <NavLink href="/users">{t('users')}</NavLink>
               </>
             )}
-            <a href={apiDocsUrl} className="nav-link" target="_blank" rel="noreferrer">
-              {t('apiDocs')}
-            </a>
           </nav>
           <div className="ml-auto flex items-center gap-2 py-2">
             {role && (

@@ -11,8 +11,7 @@
     "logout": "Sign out",
     "language": "Language",
     "menu": "Menu",
-    "signedInAs": "Signed in as {role}",
-    "apiDocs": "API docs"
+    "signedInAs": "Signed in as {role}"
   },
   "theme": {
     "title": "Theme",

@@ -13,6 +13,8 @@
 |---|---|
 | ![Board in light theme](docs/board.png) | ![Board in dark theme](docs/board-dark.png) |
 
+**Live demo:** https://live-orders-web.onrender.com, sign in with `demo@example.com` / `demo-orders-2026`. The parts catalog for customers is at [/cliente](https://live-orders-web.onrender.com/cliente) and the API docs (Swagger) at https://live-orders-api-c5zu.onrender.com/docs. Free plan: the first visit after a quiet period can take about a minute.
+
 ## Run it
 
 You need Docker.
@@ -60,8 +62,9 @@ The API follows clean architecture layers: `domain` (rules, no framework) → `a
 1. **One transaction:** every change writes the `Order` row and its `Event` row together. The `Event` table has a growing `seq` and is both the board's source of truth and the audit trail.
 2. **Publish after commit:** only after the transaction commits is the event published to the Redis channel `orders`. A rolled-back change is never announced.
 3. **Fan-out:** every API instance subscribes to `orders` and pushes the event to its own WebSocket clients, so the API can run as several copies.
-4. **Catch-up:** the board remembers the last `seq` it applied. On reconnect, or when it sees a gap in `seq`, it calls `GET /events?after=<seq>`. Events are applied in order and duplicates are ignored, so a dropped connection never leaves the board wrong.
-5. **Concurrency:** a move carries the `version` the user saw. The database updates only `where id and version` match, so of two people moving the same order at once, exactly one wins. The other gets `409 ORDER_CHANGED`.
+4. **Sign-in for the socket:** the browser never holds the JWT. The board asks its own server for a one-time ticket (`POST /live/ticket`, valid 30 seconds, kept in Redis) and opens the WebSocket with `?ticket=`; the API deletes the ticket on first use.
+5. **Catch-up:** the board remembers the last `seq` it applied. On reconnect, or when it sees a gap in `seq`, it calls `GET /events?after=<seq>`. Events are applied in order and duplicates are ignored, so a dropped connection never leaves the board wrong.
+6. **Concurrency:** a move carries the `version` the user saw. The database updates only `where id and version` match, so of two people moving the same order at once, exactly one wins. The other gets `409 ORDER_CHANGED`.
 
 ## Webhooks and third-party API
 

@@ -11,8 +11,7 @@
     "logout": "Sair",
     "language": "Idioma",
     "menu": "Menu",
-    "signedInAs": "Conectado como {role}",
-    "apiDocs": "Docs da API"
+    "signedInAs": "Conectado como {role}"
   },
   "theme": {
     "title": "Tema",
