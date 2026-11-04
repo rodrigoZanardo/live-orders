@@ -5,7 +5,7 @@ Personal portfolio project, written from scratch. Public repository.
 
 ## Plan
 
-See [docs/PLAN.md](docs/PLAN.md). The layout and commands are added as the code is written.
+See [docs/PLAN.md](docs/PLAN.md) for what to build and [docs/HANDOFF.md](docs/HANDOFF.md) for context from earlier sessions (read it first). The layout and commands are added as the code is written.
 
 ## Rules for every change
 
