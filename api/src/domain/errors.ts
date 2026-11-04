@@ -25,6 +25,10 @@ const CATALOG = {
     kind: 'rule',
     message: 'Orders from the delivery platform need their external id.',
   },
+  IDEMPOTENCY_KEY_REUSED: {
+    kind: 'conflict',
+    message: 'This Idempotency-Key was already used for another order.',
+  },
   // webhooks
   WEBHOOK_SIGNATURE_INVALID: {
     kind: 'unauthorized',

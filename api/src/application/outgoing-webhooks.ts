@@ -57,6 +57,8 @@ export abstract class WebhookRepository {
     error: string,
     final: boolean,
   ): Promise<void>;
+  /** Ids of PENDING deliveries not updated since `before`. */
+  abstract findStalePending(before: Date): Promise<string[]>;
   /** Newest first. */
   abstract listDeliveries(status: DeliveryStatus | undefined, limit: number): Promise<Delivery[]>;
 }
@@ -142,6 +144,30 @@ export class DeliverWebhookUseCase {
       throw error;
     }
     await this.webhooks.markSent(deliveryId, attempt);
+  }
+}
+
+/**
+ * Safety net for deliveries whose enqueue failed or whose process died: re-queues PENDING ones
+ * idle for over 2 minutes. Job ids are delivery ids, so a delivery whose job still exists is not queued twice.
+ */
+@Injectable()
+export class RequeueStaleDeliveriesUseCase {
+  static readonly STALE_MS = 120_000;
+
+  constructor(
+    private readonly webhooks: WebhookRepository,
+    private readonly queue: DeliveryQueue,
+  ) {}
+
+  async execute(now = new Date()): Promise<number> {
+    const ids = await this.webhooks.findStalePending(
+      new Date(now.getTime() - RequeueStaleDeliveriesUseCase.STALE_MS),
+    );
+    if (ids.length > 0) {
+      await this.queue.enqueue(ids);
+    }
+    return ids.length;
   }
 }
 

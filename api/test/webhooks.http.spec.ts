@@ -110,6 +110,19 @@ describeWithDatabase('incoming webhook POST /webhooks/orders', () => {
     expect(response.body.code).toBe('WEBHOOK_SIGNATURE_INVALID');
   });
 
+  it('checks the signature before validating the body', async () => {
+    const response = await send(JSON.stringify({ externalId: 'ext-x' }), { secret: 'wrong' });
+    expect(response.status).toBe(401);
+    expect(response.body.code).toBe('WEBHOOK_SIGNATURE_INVALID');
+  });
+
+  it('refuses a reused idempotency key with another externalId', async () => {
+    expect((await send(body('ext-a'), { key: 'reused' })).status).toBe(201);
+    const response = await send(body('ext-b'), { key: 'reused' });
+    expect(response.status).toBe(409);
+    expect(response.body.code).toBe('IDEMPOTENCY_KEY_REUSED');
+  });
+
   it('refuses a replay older than 5 minutes', async () => {
     const response = await send(body('ext-4'), { timestamp: Math.floor(Date.now() / 1000) - 600 });
     expect(response.status).toBe(401);

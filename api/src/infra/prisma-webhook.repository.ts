@@ -90,6 +90,16 @@ export class PrismaWebhookRepository extends WebhookRepository {
     });
   }
 
+  async findStalePending(before: Date): Promise<string[]> {
+    const rows = await this.db.webhookDelivery.findMany({
+      where: { status: 'PENDING', updatedAt: { lt: before } },
+      select: { id: true },
+      orderBy: { createdAt: 'asc' },
+      take: 500,
+    });
+    return rows.map((row) => row.id);
+  }
+
   async listDeliveries(status: DeliveryStatus | undefined, limit: number): Promise<Delivery[]> {
     const rows = await this.db.webhookDelivery.findMany({
       where: status ? { status } : {},

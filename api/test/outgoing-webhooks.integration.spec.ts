@@ -16,7 +16,13 @@ import { BullDeliveryQueue, FetchWebhookSender } from '../src/infra/webhook-deli
 const redisUrl = process.env.REDIS_URL;
 const describeWithServices = process.env.DATABASE_URL && redisUrl ? describe : describe.skip;
 
-type Received = { body: string; signature: string; timestamp: string; seq: string };
+type Received = {
+  body: string;
+  signature: string;
+  timestamp: string;
+  seq: string;
+  deliveryId: string;
+};
 
 function header(request: IncomingMessage, name: string): string {
   const value = request.headers[name];
@@ -48,6 +54,7 @@ describeWithServices('outgoing webhooks through the queue', () => {
           signature: header(request, 'x-signature'),
           timestamp: header(request, 'x-timestamp'),
           seq: header(request, 'x-event-seq'),
+          deliveryId: header(request, 'x-delivery-id'),
         });
         response.statusCode = calls.length <= (failFirst[path] ?? 0) ? 500 : 200;
         response.end();
@@ -119,6 +126,7 @@ describeWithServices('outgoing webhooks through the queue', () => {
     expect(calls).toHaveLength(3);
     const last = calls[2];
     expect(last?.seq).toBe(String(sent.seq));
+    expect(last?.deliveryId).toBe(delivery.id);
     expect(last?.signature).toBe(
       signWebhook(subscription.secret, last?.timestamp ?? '', last?.body ?? ''),
     );
@@ -135,6 +143,33 @@ describeWithServices('outgoing webhooks through the queue', () => {
 
     expect(delivery.attempts).toBe(4);
     expect(delivery.lastError).toBe('HTTP 500');
+    await db.webhookSubscription.delete({ where: { id: subscription.id } });
+  });
+
+  it('finds PENDING deliveries idle since before the cut-off, and only those', async () => {
+    const subscription = await createSubscription.execute(`${baseUrl}/stale`);
+    const make = (status: 'PENDING' | 'SENT', updatedAt = new Date()) =>
+      db.webhookDelivery.create({
+        data: {
+          subscriptionId: subscription.id,
+          eventSeq: BigInt(++seq),
+          eventType: 'ORDER_STATUS_CHANGED',
+          payload: '{}',
+          status,
+          updatedAt,
+        },
+      });
+    const old = new Date(Date.now() - 600_000);
+    const stale = await make('PENDING', old);
+    const sent = await make('SENT', old);
+    const fresh = await make('PENDING');
+
+    const ids = await new PrismaWebhookRepository(db).findStalePending(
+      new Date(Date.now() - 120_000),
+    );
+    expect(ids).toContain(stale.id);
+    expect(ids).not.toContain(sent.id);
+    expect(ids).not.toContain(fresh.id);
     await db.webhookSubscription.delete({ where: { id: subscription.id } });
   });
 

@@ -44,6 +44,7 @@ import {
   FanOutLiveEvents,
   ListDeliveriesUseCase,
   ListSubscriptionsUseCase,
+  RequeueStaleDeliveriesUseCase,
   WebhookDispatch,
   WebhookRepository,
   WebhookSender,
@@ -104,6 +105,7 @@ import { AddressController, IncomingWebhookController } from './http/webhooks.co
     { provide: WebhookRepository, useClass: PrismaWebhookRepository },
     { provide: WebhookSender, useClass: FetchWebhookSender },
     DeliverWebhookUseCase,
+    RequeueStaleDeliveriesUseCase,
     CreateSubscriptionUseCase,
     ListSubscriptionsUseCase,
     DeleteSubscriptionUseCase,
@@ -115,9 +117,11 @@ import { AddressController, IncomingWebhookController } from './http/webhooks.co
     { provide: AddressLookup, useFactory: () => new ViaCepClient() },
     {
       provide: CleanupQueue,
-      inject: [CleanupIdempotencyKeysUseCase],
-      useFactory: (cleanup: CleanupIdempotencyKeysUseCase) =>
-        new CleanupQueue(requiredEnv('REDIS_URL'), cleanup),
+      inject: [CleanupIdempotencyKeysUseCase, RequeueStaleDeliveriesUseCase],
+      useFactory: (
+        cleanup: CleanupIdempotencyKeysUseCase,
+        requeue: RequeueStaleDeliveriesUseCase,
+      ) => new CleanupQueue(requiredEnv('REDIS_URL'), cleanup, requeue),
     },
     {
       provide: LateOrderTimer,

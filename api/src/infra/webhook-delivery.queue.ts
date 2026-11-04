@@ -22,6 +22,7 @@ export class FetchWebhookSender extends WebhookSender {
         'Content-Type': 'application/json',
         'X-Signature': signWebhook(delivery.secret, timestamp, delivery.payload),
         'X-Timestamp': timestamp,
+        'X-Delivery-Id': delivery.id,
         'X-Event-Seq': String(delivery.eventSeq),
       },
       body: delivery.payload,
@@ -64,6 +65,7 @@ export class BullDeliveryQueue extends DeliveryQueue implements OnModuleDestroy 
       },
       {
         connection: this.workerConnection,
+        concurrency: 10,
         settings: {
           backoffStrategy: (attemptsMade: number) =>
             retryDelaysMs[Math.min(attemptsMade, retryDelaysMs.length) - 1] ?? 0,

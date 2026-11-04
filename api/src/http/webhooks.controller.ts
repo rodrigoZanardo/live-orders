@@ -4,10 +4,13 @@ import {
   Get,
   Headers,
   HttpCode,
+  Injectable,
+  UseGuards,
   Param,
   Post,
-  Req,
   Res,
+  type CanActivate,
+  type ExecutionContext,
   type RawBodyRequest,
 } from '@nestjs/common';
 import {
@@ -34,6 +37,7 @@ import type { Request, Response } from 'express';
 import { AddressLookup } from '../application/address-lookup';
 import { ReceivePlatformOrderUseCase } from '../application/platform-orders';
 import { AppError } from '../domain/errors';
+import { verifyWebhook } from '../domain/webhook-signature';
 import { ORDER_RULES } from '../domain/order';
 import { requiredEnv } from '../env';
 import { ApiErrorResponse } from './api-error';
@@ -86,12 +90,29 @@ export class AddressResponse {
   @ApiPropertyOptional({ type: AddressDto }) address?: AddressDto;
 }
 
+/** Checks the HMAC signature and timestamp before the body is validated, so unsigned callers learn nothing. */
+@Injectable()
+export class WebhookSignatureGuard implements CanActivate {
+  canActivate(context: ExecutionContext): boolean {
+    const request = context.switchToHttp().getRequest<RawBodyRequest<Request>>();
+    verifyWebhook({
+      secret: requiredEnv('WEBHOOK_INCOMING_SECRET'),
+      signature: request.header('x-signature'),
+      timestamp: request.header('x-timestamp'),
+      body: request.rawBody ?? Buffer.alloc(0),
+      now: new Date(),
+    });
+    return true;
+  }
+}
+
 @ApiTags('webhooks')
 @Controller('webhooks')
 export class IncomingWebhookController {
   constructor(private readonly receive: ReceivePlatformOrderUseCase) {}
 
   @Public()
+  @UseGuards(WebhookSignatureGuard)
   @Post('orders')
   @ApiOperation({
     summary: 'Incoming order from the delivery platform (signed, see docs/WEBHOOKS.md)',
@@ -102,23 +123,17 @@ export class IncomingWebhookController {
   @ApiResponse({ status: 201, type: OrderResponse, description: 'Order created' })
   @ApiResponse({ status: 200, type: OrderResponse, description: 'Already received; same order' })
   @ApiErrorResponse(400, 'Invalid body or missing Idempotency-Key')
+  @ApiErrorResponse(409, 'Idempotency-Key was already used for another order')
   @ApiErrorResponse(401, 'Wrong or missing signature, or timestamp out of the 5 minute window')
   async orders(
-    @Req() request: RawBodyRequest<Request>,
     @Res({ passthrough: true }) response: Response,
-    @Headers('x-signature') signature: string | undefined,
-    @Headers('x-timestamp') timestamp: string | undefined,
     @Headers('idempotency-key') idempotencyKey: string | undefined,
     @Body() body: PlatformOrderDto,
   ): Promise<OrderResponse> {
     if (!idempotencyKey?.trim() || idempotencyKey.length > 200) {
       throw new AppError('INVALID_INPUT', { details: 'Idempotency-Key header is required' });
     }
-    const { order, created } = await this.receive.execute(
-      requiredEnv('WEBHOOK_INCOMING_SECRET'),
-      { rawBody: request.rawBody ?? Buffer.alloc(0), signature, timestamp, idempotencyKey },
-      body,
-    );
+    const { order, created } = await this.receive.execute(idempotencyKey, body);
     response.status(created ? 201 : 200);
     return toOrderResponse(order);
   }

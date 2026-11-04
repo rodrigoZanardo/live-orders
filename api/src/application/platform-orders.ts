@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { businessDay } from '../domain/business-day';
 import { Order, type DeliveryAddress, type OrderItem } from '../domain/order';
-import { verifyWebhook } from '../domain/webhook-signature';
+import { AppError } from '../domain/errors';
 import { businessTimeZone } from '../env';
 import { AddressLookup } from './address-lookup';
 import { LiveEvents } from './live-events';
@@ -17,14 +17,7 @@ export type PlatformOrderBody = {
   delivery?: { cep: string; number: string; complement?: string };
 };
 
-export type SignedRequest = {
-  rawBody: Buffer;
-  signature: string | undefined;
-  timestamp: string | undefined;
-  idempotencyKey: string;
-};
-
-/** Incoming webhook from the delivery platform: signed, replay-protected and idempotent. */
+/** Incoming webhook from the delivery platform (the route guard checks the signature); idempotent. */
 @Injectable()
 export class ReceivePlatformOrderUseCase {
   constructor(
@@ -35,14 +28,11 @@ export class ReceivePlatformOrderUseCase {
 
   /** `created: false` means the same order was already received; it is returned unchanged. */
   async execute(
-    secret: string,
-    request: SignedRequest,
+    idempotencyKey: string,
     body: PlatformOrderBody,
     now = new Date(),
   ): Promise<{ order: Order; created: boolean }> {
-    verifyWebhook({ secret, ...request, body: request.rawBody, now });
-
-    const existing = await this.findExisting(request.idempotencyKey, body.externalId);
+    const existing = await this.findExisting(idempotencyKey, body.externalId);
     if (existing) {
       return { order: existing, created: false };
     }
@@ -62,19 +52,14 @@ export class ReceivePlatformOrderUseCase {
 
     try {
       const day = businessDay(now, businessTimeZone());
-      const { order, event } = await this.orders.create(
-        day,
-        build,
-        PLATFORM_ACTOR,
-        request.idempotencyKey,
-      );
+      const { order, event } = await this.orders.create(day, build, PLATFORM_ACTOR, idempotencyKey);
       await this.live.publish({ ...event, order });
       return { order, created: true };
     } catch (error) {
       // a parallel copy of the same request won the race: answer with its order
       const winner =
         error instanceof DuplicateOrderError
-          ? await this.findExisting(request.idempotencyKey, body.externalId)
+          ? await this.findExisting(idempotencyKey, body.externalId)
           : null;
       if (winner) {
         return { order: winner, created: false };
@@ -84,10 +69,11 @@ export class ReceivePlatformOrderUseCase {
   }
 
   private async findExisting(key: string, externalId: string): Promise<Order | null> {
-    return (
-      (await this.orders.findByIdempotencyKey(key)) ??
-      (await this.orders.findByExternalId('DELIVERY_PLATFORM', externalId.trim()))
-    );
+    const byKey = await this.orders.findByIdempotencyKey(key);
+    if (byKey && byKey.externalId !== externalId.trim()) {
+      throw new AppError('IDEMPOTENCY_KEY_REUSED');
+    }
+    return byKey ?? (await this.orders.findByExternalId('DELIVERY_PLATFORM', externalId.trim()));
   }
 
   /** ViaCEP fills street, district, city and state; when it fails the order keeps what was sent. */
