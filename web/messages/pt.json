@@ -37,7 +37,7 @@
     "title": "Qual peça você procura?",
     "back": "Voltar ao início",
     "empty": "Nenhuma peça ainda.",
-    "unavailable": "A lista de produtos não está disponível agora. Tente de novo em instantes.",
+    "unavailable": "O estoque está acordando (hospedagem gratuita). Recarregue a página em alguns segundos.",
     "inStock": "Em estoque",
     "available": "{count} em estoque",
     "outOfStock": "Esgotado",

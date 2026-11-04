@@ -37,7 +37,7 @@
     "title": "Which part do you need?",
     "back": "Back to start",
     "empty": "No parts yet.",
-    "unavailable": "The product list is unavailable right now. Try again in a moment.",
+    "unavailable": "The stock service is waking up (free hosting). Reload the page in a few seconds.",
     "inStock": "In stock",
     "available": "{count} in stock",
     "outOfStock": "Out of stock",

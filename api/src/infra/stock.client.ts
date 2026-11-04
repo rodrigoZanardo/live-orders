@@ -2,7 +2,8 @@ import { Logger } from '@nestjs/common';
 import { StockAvailability } from '../application/stock-availability';
 import { AppError } from '../domain/errors';
 
-export const STOCK_TIMEOUT_MS = 3000;
+// shortcut: the free hosting plan takes up to ~40 s to wake the stock services; lower it on always-on hosting
+export const STOCK_TIMEOUT_MS = 45_000;
 
 /**
  * GET /products of the stock service as a VIEWER user (read only). Signs in with email and password,

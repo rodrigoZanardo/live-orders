@@ -1,7 +1,8 @@
 import 'server-only';
 import type { ShopProduct, StockProduct } from './types';
 
-const TIMEOUT_MS = 5000;
+// shortcut: the free hosting plan takes up to ~40 s to wake the stock services; lower it on always-on hosting
+const TIMEOUT_MS = 45_000;
 
 function isStockProduct(value: unknown): value is StockProduct {
   return (
