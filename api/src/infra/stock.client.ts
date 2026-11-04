@@ -5,15 +5,19 @@ import { AppError } from '../domain/errors';
 export const STOCK_TIMEOUT_MS = 3000;
 
 /**
- * GET /products of the stock service, with a VIEWER token (read only).
+ * GET /products of the stock service as a VIEWER user (read only). Signs in with email and password,
+ * keeps the token and signs in again when it expires (401), so no hand-made token goes stale.
  * Any failure (timeout, refusal, unexpected body) is STOCK_UNAVAILABLE: an order is refused, never accepted unchecked.
  */
 export class StockClient extends StockAvailability {
   private readonly logger = new Logger(StockClient.name);
 
+  private token: string | undefined;
+
   constructor(
     private readonly baseUrl: string,
-    private readonly token: string,
+    private readonly email: string,
+    private readonly password: string,
   ) {
     super();
   }
@@ -22,17 +26,18 @@ export class StockClient extends StockAvailability {
     if (skus.length === 0) {
       return new Map();
     }
-    if (!this.baseUrl || !this.token) {
-      this.logger.warn('STOCK_API_URL or STOCK_API_TOKEN is not set');
+    if (!this.baseUrl || !this.email || !this.password) {
+      this.logger.warn('STOCK_API_URL, STOCK_API_EMAIL or STOCK_API_PASSWORD is not set');
       throw new AppError('STOCK_UNAVAILABLE');
     }
     let body: unknown;
     try {
-      const response = await fetch(`${this.baseUrl}/products`, {
-        headers: { Authorization: `Bearer ${this.token}` },
-        cache: 'no-store',
-        signal: AbortSignal.timeout(STOCK_TIMEOUT_MS),
-      });
+      this.token ??= await this.signIn();
+      let response = await this.products(this.token);
+      if (response.status === 401) {
+        this.token = await this.signIn();
+        response = await this.products(this.token);
+      }
       if (!response.ok) {
         this.logger.warn(`stock answered ${response.status}`);
         throw new AppError('STOCK_UNAVAILABLE');
@@ -59,5 +64,33 @@ export class StockClient extends StockAvailability {
       }
     }
     return found;
+  }
+
+  private products(token: string): Promise<Response> {
+    return fetch(`${this.baseUrl}/products`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+      signal: AbortSignal.timeout(STOCK_TIMEOUT_MS),
+    });
+  }
+
+  private async signIn(): Promise<string> {
+    const response = await fetch(`${this.baseUrl}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: this.email, password: this.password }),
+      signal: AbortSignal.timeout(STOCK_TIMEOUT_MS),
+    });
+    const body: unknown = response.ok ? await response.json() : undefined;
+    if (
+      typeof body === 'object' &&
+      body !== null &&
+      'accessToken' in body &&
+      typeof body.accessToken === 'string'
+    ) {
+      return body.accessToken;
+    }
+    this.logger.warn(`stock sign-in failed: ${response.status}`);
+    throw new AppError('STOCK_UNAVAILABLE');
   }
 }

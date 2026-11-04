@@ -41,6 +41,13 @@ services:
       # the web service's public https URL (Render may add a suffix: read it from the API, docs/HANDOFF.md)
       - key: WEB_ORIGIN
         sync: false
+      # Stock Manager gateway (https://stock-manager-gateway.onrender.com) and its VIEWER user
+      - key: STOCK_API_URL
+        sync: false
+      - key: STOCK_API_EMAIL
+        sync: false
+      - key: STOCK_API_PASSWORD
+        sync: false
 
   - type: web
     name: live-orders-web
@@ -57,4 +64,11 @@ services:
       - key: DEMO_EMAIL
         value: demo@example.com
       - key: DEMO_PASSWORD
+        sync: false
+      # Stock Manager gateway (https://stock-manager-gateway.onrender.com) and its VIEWER user
+      - key: STOCK_API_URL
+        sync: false
+      - key: STOCK_API_EMAIL
+        sync: false
+      - key: STOCK_API_PASSWORD
         sync: false

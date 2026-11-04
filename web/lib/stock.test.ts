@@ -1,5 +1,3 @@
-import { listStockProducts } from './stock';
-
 // The module is server-only; in Jest it is an ordinary module.
 jest.mock('server-only', () => ({}));
 
@@ -9,26 +7,34 @@ const PRODUCTS = [
 ];
 
 describe('listStockProducts', () => {
-  const saved = { url: process.env.STOCK_API_URL, token: process.env.STOCK_API_TOKEN };
+  const saved = { ...process.env };
   let fetchMock: jest.SpyInstance;
+  let listStockProducts: typeof import('./stock').listStockProducts;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     process.env.STOCK_API_URL = 'http://stock.test/';
-    process.env.STOCK_API_TOKEN = 'service-token';
+    process.env.STOCK_API_EMAIL = 'viewer@example.com';
+    process.env.STOCK_API_PASSWORD = 'secret';
+    // fresh module per test: the signed-in token is kept at module level
+    jest.resetModules();
+    ({ listStockProducts } = await import('./stock'));
     fetchMock = jest
       .spyOn(globalThis, 'fetch')
-      .mockResolvedValue(new Response(JSON.stringify(PRODUCTS), { status: 200 }));
+      .mockImplementation((url) =>
+        Promise.resolve(
+          String(url).endsWith('/auth/login')
+            ? Response.json({ accessToken: 'service-token' })
+            : new Response(JSON.stringify(PRODUCTS), { status: 200 }),
+        ),
+      );
   });
 
   afterEach(() => {
     fetchMock.mockRestore();
-    if (saved.url === undefined) delete process.env.STOCK_API_URL;
-    else process.env.STOCK_API_URL = saved.url;
-    if (saved.token === undefined) delete process.env.STOCK_API_TOKEN;
-    else process.env.STOCK_API_TOKEN = saved.token;
+    process.env = { ...saved };
   });
 
-  it('reads /products with the service token and returns the exact quantities for staff', async () => {
+  it('signs in as the viewer, reads /products with its token and returns the exact quantities for staff', async () => {
     await expect(listStockProducts(true)).resolves.toStrictEqual([
       { sku: 'KB-001', name: 'Keyboard', inStock: true, quantity: 4 },
       { sku: 'MS-002', name: 'Mouse', inStock: false, quantity: 0 },
@@ -49,23 +55,31 @@ describe('listStockProducts', () => {
   });
 
   it('fails with a clear message when the variables are missing, without calling the service', async () => {
-    delete process.env.STOCK_API_TOKEN;
-    await expect(listStockProducts(false)).rejects.toThrow(
-      'STOCK_API_URL and STOCK_API_TOKEN must be set',
-    );
+    delete process.env.STOCK_API_PASSWORD;
+    await expect(listStockProducts(false)).rejects.toThrow('STOCK_API_PASSWORD must be set');
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('fails when the service refuses the token', async () => {
+  it('signs in again once when the token expired', async () => {
+    fetchMock
+      .mockResolvedValueOnce(Response.json({ accessToken: 'old' }))
+      .mockResolvedValueOnce(new Response('{}', { status: 401 }));
+    await expect(listStockProducts(false)).resolves.toHaveLength(2);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+  });
+
+  it('fails when the sign-in is refused', async () => {
     fetchMock.mockResolvedValue(new Response('{}', { status: 401 }));
-    await expect(listStockProducts(false)).rejects.toThrow('HTTP 401');
+    await expect(listStockProducts(false)).rejects.toThrow('sign-in answered HTTP 401');
   });
 
   it('fails on a body that is not a product list', async () => {
-    fetchMock.mockResolvedValue(new Response(JSON.stringify({ items: [] }), { status: 200 }));
+    fetchMock
+      .mockResolvedValueOnce(Response.json({ accessToken: 't' }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ items: [] }), { status: 200 }));
     await expect(listStockProducts(false)).rejects.toThrow('no product list');
 
-    fetchMock.mockResolvedValue(
+    fetchMock.mockResolvedValueOnce(
       new Response(JSON.stringify([{ sku: 'KB-001', name: 'Keyboard' }]), { status: 200 }),
     );
     await expect(listStockProducts(false)).rejects.toThrow('malformed product');

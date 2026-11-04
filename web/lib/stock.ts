@@ -16,28 +16,59 @@ function isStockProduct(value: unknown): value is StockProduct {
   );
 }
 
-/**
- * Products from the stock service, with the service token (server only).
- * The token has no NEXT_PUBLIC_ prefix, so it never reaches the browser.
- * Without `exact` the quantity is dropped here, so it never reaches an anonymous page.
- */
-export async function listStockProducts(exact: boolean): Promise<ShopProduct[]> {
-  const baseUrl = process.env.STOCK_API_URL;
-  const token = process.env.STOCK_API_TOKEN;
-  if (!baseUrl || !token) {
-    throw new Error(
-      'STOCK_API_URL and STOCK_API_TOKEN must be set to read products (see .env.example).',
-    );
-  }
+// kept between requests; renewed when the stock answers 401 (the token expires)
+let token: string | undefined;
 
-  const response = await fetch(`${baseUrl.replace(/\/$/, '')}/products`, {
-    headers: { Authorization: `Bearer ${token}` },
+async function signIn(baseUrl: string, email: string, password: string): Promise<string> {
+  const response = await fetch(`${baseUrl}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
     cache: 'no-store',
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
+  const body: unknown = response.ok ? await response.json() : undefined;
+  if (
+    typeof body === 'object' &&
+    body !== null &&
+    'accessToken' in body &&
+    typeof body.accessToken === 'string'
+  )
+    return body.accessToken;
+  throw new Error(`Stock sign-in answered HTTP ${response.status}.`);
+}
+
+function getProducts(baseUrl: string, bearer: string): Promise<Response> {
+  return fetch(`${baseUrl}/products`, {
+    headers: { Authorization: `Bearer ${bearer}` },
+    cache: 'no-store',
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+  });
+}
+
+/**
+ * Products from the stock service, signed in as its VIEWER user (server only).
+ * The credentials have no NEXT_PUBLIC_ prefix, so they never reach the browser.
+ * Without `exact` the quantity is dropped here, so it never reaches an anonymous page.
+ */
+export async function listStockProducts(exact: boolean): Promise<ShopProduct[]> {
+  const baseUrl = process.env.STOCK_API_URL?.replace(/\/$/, '');
+  const email = process.env.STOCK_API_EMAIL;
+  const password = process.env.STOCK_API_PASSWORD;
+  if (!baseUrl || !email || !password) {
+    throw new Error(
+      'STOCK_API_URL, STOCK_API_EMAIL and STOCK_API_PASSWORD must be set to read products (see .env.example).',
+    );
+  }
+
+  token ??= await signIn(baseUrl, email, password);
+  let response = await getProducts(baseUrl, token);
+  if (response.status === 401) {
+    token = await signIn(baseUrl, email, password);
+    response = await getProducts(baseUrl, token);
+  }
   if (!response.ok)
     throw new Error(`Stock service answered HTTP ${response.status} for /products.`);
-
   const body: unknown = await response.json();
   if (!Array.isArray(body)) throw new Error('Stock service returned no product list.');
   const products = body.filter(isStockProduct);

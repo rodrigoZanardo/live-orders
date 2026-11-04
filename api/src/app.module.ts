@@ -121,7 +121,11 @@ import { AddressController, IncomingWebhookController } from './http/webhooks.co
       provide: StockAvailability,
       // not required at boot: without them the API boots and refuses counter orders (STOCK_UNAVAILABLE)
       useFactory: () =>
-        new StockClient(process.env.STOCK_API_URL ?? '', process.env.STOCK_API_TOKEN ?? ''),
+        new StockClient(
+          process.env.STOCK_API_URL ?? '',
+          process.env.STOCK_API_EMAIL ?? '',
+          process.env.STOCK_API_PASSWORD ?? '',
+        ),
     },
     {
       provide: CleanupQueue,

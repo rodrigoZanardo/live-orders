@@ -16,14 +16,15 @@ services:
       interval: 2s
       retries: 20
 
-  # stands in for the Stock Manager stock service; point STOCK_API_URL/STOCK_API_TOKEN in .env at the real one
+  # stands in for the Stock Manager stock service; point STOCK_API_URL/EMAIL/PASSWORD in .env at the real one
   stock-stub:
     image: node:22-alpine
     command: node /app/stock-stub.mjs
     working_dir: /app
     volumes: [./scripts/stock-stub.mjs:/app/stock-stub.mjs:ro]
     environment:
-      STOCK_API_TOKEN: ${STOCK_API_TOKEN:-local-stub-token}
+      STOCK_API_EMAIL: ${STOCK_API_EMAIL:-viewer@example.com}
+      STOCK_API_PASSWORD: ${STOCK_API_PASSWORD:-viewer-password}
 
   api:
     build: { context: ., dockerfile: api/Dockerfile }
@@ -42,7 +43,8 @@ services:
       WEB_ORIGIN: http://localhost:3000
       # counter orders are refused until the stock answers
       STOCK_API_URL: ${STOCK_API_URL:-http://stock-stub:3040}
-      STOCK_API_TOKEN: ${STOCK_API_TOKEN:-local-stub-token}
+      STOCK_API_EMAIL: ${STOCK_API_EMAIL:-viewer@example.com}
+      STOCK_API_PASSWORD: ${STOCK_API_PASSWORD:-viewer-password}
     ports: ['3001:3001']
     healthcheck:
       test: ['CMD', 'wget', '-qO-', 'http://localhost:3001/health']
@@ -59,7 +61,8 @@ services:
       PUBLIC_API_URL: http://localhost:3001
       COOKIE_SECURE: 'false'
       STOCK_API_URL: ${STOCK_API_URL:-http://stock-stub:3040}
-      STOCK_API_TOKEN: ${STOCK_API_TOKEN:-local-stub-token}
+      STOCK_API_EMAIL: ${STOCK_API_EMAIL:-viewer@example.com}
+      STOCK_API_PASSWORD: ${STOCK_API_PASSWORD:-viewer-password}
     ports: ['3000:3000']
 
 volumes:
