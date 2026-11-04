@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { randomBytes, randomUUID } from 'crypto';
 import { AppError } from '../domain/errors';
 import { validWebhookUrl } from '../domain/webhook-subscription';
+import { allowPrivateWebhookTargets } from '../env';
 import { LiveEvents } from './live-events';
 import type { EventType } from './order-repository';
 import type { EventWithOrder } from './order.use-cases';
@@ -85,7 +86,7 @@ export class CreateSubscriptionUseCase {
     const secret = `whsec_${randomBytes(24).toString('hex')}`;
     const subscription = await this.webhooks.createSubscription({
       id: randomUUID(),
-      url: validWebhookUrl(url),
+      url: validWebhookUrl(url, allowPrivateWebhookTargets()),
       secret,
     });
     return { ...subscription, secret };

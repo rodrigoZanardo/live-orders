@@ -8,16 +8,17 @@ import { HttpAdapterHost } from '@nestjs/core';
 import type { IncomingMessage, Server } from 'http';
 import { WebSocket, WebSocketServer } from 'ws';
 import { TokenService } from '../application/auth.ports';
+import { LiveTickets } from '../application/live-tickets';
 import { OrderRepository } from '../application/order-repository';
 import { EventBus } from './event-bus';
 
 export const LIVE_PATH = '/live';
-/** Close code for a missing or invalid token. */
+/** Close code for a missing, used, expired or invalid ticket. */
 export const CLOSE_UNAUTHORIZED = 4401;
 const HEARTBEAT_MS = 25_000;
 
 /**
- * WebSocket endpoint at /live?token=<jwt>. Sends `{ type: 'hello', lastSeq }` on connect, then every
+ * WebSocket endpoint at /live?ticket=<ticket from POST /live/ticket>. Sends `{ type: 'hello', lastSeq }` on connect, then every
  * event from the bus. Clients catch up through GET /events?after=<lastSeq> after a reconnect.
  */
 @Injectable()
@@ -30,6 +31,7 @@ export class LiveGateway implements OnApplicationBootstrap, OnModuleDestroy {
   constructor(
     private readonly adapterHost: HttpAdapterHost,
     private readonly tokens: TokenService,
+    private readonly tickets: LiveTickets,
     private readonly orders: OrderRepository,
     private readonly bus: EventBus,
   ) {}
@@ -49,7 +51,9 @@ export class LiveGateway implements OnApplicationBootstrap, OnModuleDestroy {
   }
 
   private async accept(socket: WebSocket, request: IncomingMessage): Promise<void> {
-    const token = new URL(request.url ?? '', 'http://localhost').searchParams.get('token');
+    const ticket = new URL(request.url ?? '', 'http://localhost').searchParams.get('ticket');
+    // the ticket holds the session token, so a session that expired since it was issued is still refused
+    const token = ticket ? await this.tickets.consume(ticket).catch(() => null) : null;
     const actor = token ? await this.tokens.verify(token) : null;
     if (!actor) {
       socket.close(CLOSE_UNAUTHORIZED, 'SESSION_INVALID');

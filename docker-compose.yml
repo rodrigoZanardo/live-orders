@@ -41,6 +41,8 @@ services:
       WEBHOOK_INCOMING_SECRET: ${WEBHOOK_INCOMING_SECRET:-dev-incoming}
       LATE_AFTER_MINUTES: ${LATE_AFTER_MINUTES:-10}
       WEB_ORIGIN: http://localhost:3000
+      # local stack only: lets webhooks reach scripts/webhook-receiver.mjs on the host
+      ALLOW_PRIVATE_WEBHOOK_TARGETS: 'true'
       # counter orders are refused until the stock answers
       STOCK_API_URL: ${STOCK_API_URL:-http://stock-stub:3040}
       STOCK_API_EMAIL: ${STOCK_API_EMAIL:-viewer@example.com}

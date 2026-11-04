@@ -2,7 +2,7 @@
 
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { moveOrder } from '@/app/actions';
+import { catchUpEvents, liveTicket, moveOrder } from '@/app/actions';
 import { applyEvents, canDrop, column, hasGap, initialBoard, type BoardState } from '@/lib/board';
 import {
   isEventWithOrder,
@@ -29,18 +29,17 @@ const CLOSE_UNAUTHORIZED = 4401;
 
 /**
  * The one live client component: starts from the server's list, then applies WebSocket events by seq.
- * After a reconnect or a gap it calls GET /events?after=<lastSeq> before applying anything newer.
+ * After a reconnect or a gap it catches up (GET /events?after=<lastSeq>) before applying anything newer.
+ * The session token never reaches the browser: each connect opens /live with a fresh single-use ticket.
  */
 export function Board({
   orders,
   lastSeq,
-  token,
   apiUrl,
   role,
 }: {
   orders: Order[];
   lastSeq: number;
-  token: string;
   apiUrl: string;
   role: Role | null;
 }) {
@@ -81,21 +80,14 @@ export function Board({
   const catchUp = useCallback(async () => {
     // pages of at most 500 events until the board has seen everything
     for (;;) {
-      const response = await fetch(`${apiUrl}/events?after=${boardRef.current.lastSeq}`, {
-        headers: { Authorization: `Bearer ${token}` },
-        cache: 'no-store',
-      });
-      if (response.status === 401) {
-        window.location.assign('/session-expired');
-        return;
-      }
-      if (!response.ok) throw new Error(`catch-up failed: ${response.status}`);
-      const body: unknown = await response.json();
-      const events = Array.isArray(body) ? body.filter(isEventWithOrder) : [];
+      // an expired session redirects to /session-expired inside the action
+      const result = await catchUpEvents(boardRef.current.lastSeq);
+      if (!result.events) throw new Error(`catch-up failed: ${result.error?.message ?? ''}`);
+      const events = result.events.filter(isEventWithOrder);
       apply(events);
       if (events.length < 500) return;
     }
-  }, [apiUrl, token, apply]);
+  }, [apply]);
 
   useEffect(() => {
     let socket: WebSocket | null = null;
@@ -110,9 +102,22 @@ export function Board({
       return catchingUp;
     };
 
-    const connect = () => {
+    const retry = () => {
+      setConnection(attempt >= 2 ? 'offline' : 'reconnecting');
+      timer = setTimeout(() => void connect(), reconnectDelay(attempt));
+      attempt += 1;
+    };
+
+    const connect = async () => {
+      // a ticket works once, so every reconnect asks for a new one
+      const { ticket } = await liveTicket().catch(() => ({ ticket: undefined }));
+      if (stopped) return;
+      if (!ticket) {
+        retry();
+        return;
+      }
       socket = new WebSocket(
-        `${apiUrl.replace(/^http/, 'ws')}/live?token=${encodeURIComponent(token)}`,
+        `${apiUrl.replace(/^http/, 'ws')}/live?ticket=${encodeURIComponent(ticket)}`,
       );
       socket.onmessage = (message) => {
         const parsed = parseLiveMessage(String(message.data));
@@ -134,19 +139,17 @@ export function Board({
           window.location.assign('/session-expired');
           return;
         }
-        setConnection(attempt >= 2 ? 'offline' : 'reconnecting');
-        timer = setTimeout(connect, reconnectDelay(attempt));
-        attempt += 1;
+        retry();
       };
     };
 
-    connect();
+    void connect();
     return () => {
       stopped = true;
       clearTimeout(timer);
       socket?.close();
     };
-  }, [apiUrl, token, apply, catchUp]);
+  }, [apiUrl, apply, catchUp]);
 
   const cancelled = column(board, 'CANCELLED');
 

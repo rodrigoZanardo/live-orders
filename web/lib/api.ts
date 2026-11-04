@@ -106,6 +106,8 @@ export const api = {
     send<{ token: string; user: User }>('/auth/login', { method: 'POST', body: input }),
 
   lastSeq: () => send<{ lastSeq: number }>('/events/last'),
+  events: (after: number) => send<EventWithOrder[]>(`/events?after=${after}`),
+  liveTicket: () => send<{ ticket: string }>('/live/ticket', { method: 'POST' }),
   orders: (date?: string) => send<Order[]>(`/orders${date ? `?date=${date}` : ''}`),
   order: (id: string) => send<OrderDetail>(`/orders/${encodeURIComponent(id)}`),
   createOrder: (input: { customerName: string; items: OrderItem[]; delivery?: DeliveryAddress }) =>
@@ -140,11 +142,6 @@ export const api = {
 export async function currentRole(): Promise<Role | null> {
   const value = (await cookies()).get(ROLE_COOKIE)?.value;
   return value === 'ADMIN' || value === 'STAFF' || value === 'VIEWER' ? value : null;
-}
-
-/** The live board opens the WebSocket and calls catch-up from the browser, so it needs the token. */
-export async function sessionToken(): Promise<string> {
-  return (await cookies()).get(TOKEN_COOKIE)?.value ?? '';
 }
 
 /** API address as the browser sees it (may differ from API_URL inside docker). */

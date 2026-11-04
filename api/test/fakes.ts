@@ -6,6 +6,7 @@ import {
 } from '../src/application/auth.ports';
 import { DeliveryQueue } from '../src/application/outgoing-webhooks';
 import { LateOrderTimer } from '../src/application/late-orders';
+import { LiveTickets } from '../src/application/live-tickets';
 import { AppError } from '../src/domain/errors';
 import { User } from '../src/domain/user';
 
@@ -117,5 +118,23 @@ export class NoDeliveryQueue extends DeliveryQueue {
 
   async enqueue(deliveryIds: string[]): Promise<void> {
     this.queued.push(...deliveryIds);
+  }
+}
+
+/** Tickets in a Map, deleted on use; the Redis store (with expiry) has its own integration test. */
+export class InMemoryLiveTickets extends LiveTickets {
+  private readonly tokens = new Map<string, string>();
+  private next = 0;
+
+  async issue(token: string): Promise<string> {
+    const ticket = `ticket-${(this.next += 1)}`;
+    this.tokens.set(ticket, token);
+    return ticket;
+  }
+
+  async consume(ticket: string): Promise<string | null> {
+    const token = this.tokens.get(ticket) ?? null;
+    this.tokens.delete(ticket);
+    return token;
   }
 }

@@ -44,7 +44,7 @@ npm run stop
 ```mermaid
 flowchart LR
   browser[Browser<br/>Next.js board] -- HTTP --> web[web<br/>Next.js server]
-  browser -- WebSocket /live<br/>+ GET /events catch-up --> api
+  browser -- WebSocket /live?ticket --> api
   web -- HTTP --> api[api<br/>NestJS]
   api -- Prisma --> pg[(PostgreSQL<br/>orders + Event log)]
   api -- pub/sub + BullMQ --> redis[(Redis)]

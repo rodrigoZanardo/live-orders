@@ -30,6 +30,9 @@ import { PrismaService } from './infra/prisma.service';
 import { LiveEvents } from './application/live-events';
 import { EventBus, RedisEventBus } from './realtime/event-bus';
 import { LiveGateway } from './realtime/live.gateway';
+import { LiveTickets } from './application/live-tickets';
+import { RedisLiveTickets } from './infra/redis-live-tickets';
+import { LiveController } from './http/live.controller';
 import { AddressLookup } from './application/address-lookup';
 import {
   CleanupIdempotencyKeysUseCase,
@@ -74,6 +77,7 @@ import { AddressController, IncomingWebhookController } from './http/webhooks.co
     IncomingWebhookController,
     AddressController,
     OutgoingWebhooksController,
+    LiveController,
   ],
   providers: [
     PrismaService,
@@ -113,6 +117,7 @@ import { AddressController, IncomingWebhookController } from './http/webhooks.co
     DeleteSubscriptionUseCase,
     ListDeliveriesUseCase,
     LiveGateway,
+    { provide: LiveTickets, useFactory: () => new RedisLiveTickets(requiredEnv('REDIS_URL')) },
     MarkLateUseCase,
     ReceivePlatformOrderUseCase,
     CleanupIdempotencyKeysUseCase,

@@ -29,6 +29,9 @@ function header(request: IncomingMessage, name: string): string {
   return typeof value === 'string' ? value : '';
 }
 
+// the receiver runs on localhost
+process.env.ALLOW_PRIVATE_WEBHOOK_TARGETS = 'true';
+
 describeWithServices('outgoing webhooks through the queue', () => {
   const now = new Date('2026-11-03T12:00:00Z');
   let db: PrismaService;

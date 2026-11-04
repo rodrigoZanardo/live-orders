@@ -7,11 +7,18 @@ import { LateOrderTimer } from '../src/application/late-orders';
 import { StockAvailability } from '../src/application/stock-availability';
 import { FakeStockAvailability } from './fake-stock';
 import { DeliveryQueue } from '../src/application/outgoing-webhooks';
+import { LiveTickets } from '../src/application/live-tickets';
 import { CleanupQueue } from '../src/infra/cleanup.queue';
 import { configureApp } from '../src/http/configure-app';
 import { EventBus, InProcessEventBus } from '../src/realtime/event-bus';
 import { PrismaService } from '../src/infra/prisma.service';
-import { FakeTokenService, InMemoryUserRepository, NoDeliveryQueue, NoLateTimer } from './fakes';
+import {
+  FakeTokenService,
+  InMemoryLiveTickets,
+  InMemoryUserRepository,
+  NoDeliveryQueue,
+  NoLateTimer,
+} from './fakes';
 
 // The whole orders API on a real database (skipped without DATABASE_URL); tokens are faked.
 const describeWithDatabase = process.env.DATABASE_URL ? describe : describe.skip;
@@ -42,6 +49,8 @@ describeWithDatabase('orders API over HTTP', () => {
       .useValue({})
       .overrideProvider(LateOrderTimer)
       .useValue(new NoLateTimer())
+      .overrideProvider(LiveTickets)
+      .useValue(new InMemoryLiveTickets())
       .overrideProvider(EventBus)
       .useValue(new InProcessEventBus())
       .overrideProvider(UserRepository)

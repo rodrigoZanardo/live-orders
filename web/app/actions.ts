@@ -76,6 +76,18 @@ export async function moveOrder(
   return { error: result.error };
 }
 
+/** Catch-up for the board: events after `after`, oldest first, at most 500. */
+export async function catchUpEvents(after: number) {
+  const result = await attempt(() => api.events(after));
+  return { error: result.error, events: result.data };
+}
+
+/** Single-use ticket (30 s) that opens the WebSocket; the session token stays in the httpOnly cookie. */
+export async function liveTicket() {
+  const result = await attempt(() => api.liveTicket());
+  return { error: result.error, ticket: result.data?.ticket };
+}
+
 export async function lookupAddress(cep: string) {
   const result = await attempt(() => api.address(cep));
   return { error: result.error, ...result.data };

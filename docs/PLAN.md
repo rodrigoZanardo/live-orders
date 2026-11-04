@@ -133,7 +133,7 @@ All routes need a JWT (HS256 is enough here, one service; secret from env) excep
 
 ### Realtime (WebSocket, path `/live`)
 
-- Connect with `?token=<jwt>`; a bad token closes with code 4401.
+- Get a single-use ticket with `POST /live/ticket` (any signed-in role, valid 30 s, kept in Redis), then connect with `?ticket=<ticket>`; an unknown, used or expired ticket closes with code 4401. The session token never goes in the URL or to the browser.
 - Server → client messages: `{ "type": "event", "seq": 42, "event": { ...same shape as GET /events } }` and `{ "type": "hello", "lastSeq": 42 }` on connect.
 - Client keeps the last `seq` it applied. On reconnect it calls `GET /events?after=<lastSeq>` and applies those, then listens again. Events are applied in `seq` order and duplicates are ignored, so a missed or repeated message never breaks the board.
 - Fan-out: after the transaction commits, the API publishes the event to the Redis channel `orders`. Every API instance subscribes and pushes it to its own sockets.

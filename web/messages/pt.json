@@ -202,7 +202,7 @@
     "IDEMPOTENCY_KEY_REUSED": "Esta Idempotency-Key já foi usada em outro pedido.",
     "WEBHOOK_SIGNATURE_INVALID": "Assinatura do webhook ausente ou incorreta.",
     "WEBHOOK_TOO_OLD": "Horário do webhook muito antigo ou no futuro.",
-    "WEBHOOK_URL_INVALID": "Use uma URL completa com http ou https.",
+    "WEBHOOK_URL_INVALID": "Use uma URL pública com http ou https (sem endereços internos ou privados).",
     "WEBHOOK_SUBSCRIPTION_NOT_FOUND": "Assinatura não encontrada.",
     "EMAIL_INVALID": "Email inválido.",
     "PASSWORD_TOO_SHORT": "A senha deve ter pelo menos {min} caracteres.",

@@ -6,6 +6,7 @@ import { PasswordHasher, TokenService, UserRepository } from '../src/application
 import { OrderRepository } from '../src/application/order-repository';
 import { LateOrderTimer } from '../src/application/late-orders';
 import { DeliveryQueue } from '../src/application/outgoing-webhooks';
+import { LiveTickets } from '../src/application/live-tickets';
 import { CleanupQueue } from '../src/infra/cleanup.queue';
 import { configureApp } from '../src/http/configure-app';
 import { EventBus, InProcessEventBus } from '../src/realtime/event-bus';
@@ -13,6 +14,7 @@ import { PrismaService } from '../src/infra/prisma.service';
 import {
   FakePasswordHasher,
   FakeTokenService,
+  InMemoryLiveTickets,
   InMemoryUserRepository,
   NoDeliveryQueue,
   NoLateTimer,
@@ -22,6 +24,7 @@ import {
 describe('auth over HTTP', () => {
   let app: INestApplication;
   const tokens = new FakeTokenService();
+  const tickets = new InMemoryLiveTickets();
 
   beforeAll(async () => {
     process.env.JWT_SECRET = 'test-secret';
@@ -47,6 +50,8 @@ describe('auth over HTTP', () => {
       .useValue(new FakePasswordHasher())
       .overrideProvider(TokenService)
       .useValue(tokens)
+      .overrideProvider(LiveTickets)
+      .useValue(tickets)
       .compile();
     app = moduleRef.createNestApplication();
     configureApp(app);
@@ -106,5 +111,20 @@ describe('auth over HTTP', () => {
       .send({ email: 'x@example.com', password: 'long-enough', role: 'OWNER' });
     expect(response.status).toBe(400);
     expect(response.body.code).toBe('INVALID_INPUT');
+  });
+
+  it('issues a live ticket for the session token only to a signed-in caller', async () => {
+    const refused = await request(app.getHttpServer())
+      .post('/live/ticket')
+      .set('Authorization', 'Bearer forged');
+    expect(refused.status).toBe(401);
+    expect(refused.body.code).toBe('SESSION_INVALID');
+
+    const token = await tokens.issue({ id: 'v1', email: 'viewer@example.com', role: 'VIEWER' });
+    const issued = await request(app.getHttpServer())
+      .post('/live/ticket')
+      .set('Authorization', `Bearer ${token}`);
+    expect(issued.status).toBe(201);
+    expect(await tickets.consume(issued.body.ticket)).toBe(token);
   });
 });

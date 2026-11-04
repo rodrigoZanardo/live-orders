@@ -19,4 +19,4 @@ Next.js 15 (App Router) app: login, live board, order form, order detail, webhoo
 ## Run locally
 
 - API on :3001 (see `.env.example`), then `npm run build -w @live/web && npm start -w @live/web` or `npm run dev -w @live/web` (http://localhost:3000).
-- `API_URL` is how the Next server reaches the API; `PUBLIC_API_URL` is how the browser reaches it (WebSocket + catch-up).
+- `API_URL` is how the Next server reaches the API; `PUBLIC_API_URL` is how the browser reaches it (WebSocket only; the board gets its ticket and catch-up through server actions).

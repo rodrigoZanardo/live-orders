@@ -7,6 +7,7 @@ import { AppModule } from '../src/app.module';
 import { TokenService, UserRepository } from '../src/application/auth.ports';
 import { LateOrderTimer } from '../src/application/late-orders';
 import { DeliveryQueue } from '../src/application/outgoing-webhooks';
+import { LiveTickets } from '../src/application/live-tickets';
 import { StockAvailability } from '../src/application/stock-availability';
 import { FakeStockAvailability } from './fake-stock';
 import { CleanupQueue } from '../src/infra/cleanup.queue';
@@ -14,7 +15,13 @@ import { configureApp } from '../src/http/configure-app';
 import { PrismaService } from '../src/infra/prisma.service';
 import { EventBus, InProcessEventBus } from '../src/realtime/event-bus';
 import { CLOSE_UNAUTHORIZED } from '../src/realtime/live.gateway';
-import { FakeTokenService, InMemoryUserRepository, NoDeliveryQueue, NoLateTimer } from './fakes';
+import {
+  FakeTokenService,
+  InMemoryLiveTickets,
+  InMemoryUserRepository,
+  NoDeliveryQueue,
+  NoLateTimer,
+} from './fakes';
 
 // The WebSocket endpoint on a real database (skipped without DATABASE_URL); Redis is replaced by an in-process bus.
 const describeWithDatabase = process.env.DATABASE_URL ? describe : describe.skip;
@@ -41,6 +48,7 @@ describeWithDatabase('live WebSocket', () => {
   let app: INestApplication;
   let url: string;
   const tokens = new FakeTokenService();
+  const tickets = new InMemoryLiveTickets();
   let token: string;
 
   beforeAll(async () => {
@@ -61,6 +69,8 @@ describeWithDatabase('live WebSocket', () => {
       .useValue(new InMemoryUserRepository())
       .overrideProvider(TokenService)
       .useValue(tokens)
+      .overrideProvider(LiveTickets)
+      .useValue(tickets)
       .overrideProvider(StockAvailability)
       .useValue(new FakeStockAvailability())
       .compile();
@@ -80,14 +90,25 @@ describeWithDatabase('live WebSocket', () => {
 
   afterAll(() => app.close());
 
-  it('closes a connection without a valid token with 4401', async () => {
-    const socket = new WebSocket(`${url}?token=forged`);
-    const code = await new Promise<number>((resolve) => socket.on('close', resolve));
-    expect(code).toBe(CLOSE_UNAUTHORIZED);
+  const closeCode = (socket: WebSocket) =>
+    new Promise<number>((resolve) => socket.on('close', resolve));
+  const withTicket = async () => new WebSocket(`${url}?ticket=${await tickets.issue(token)}`);
+
+  it('closes a connection with an unknown ticket, or with the old ?token=, with 4401', async () => {
+    expect(await closeCode(new WebSocket(`${url}?ticket=forged`))).toBe(CLOSE_UNAUTHORIZED);
+    expect(await closeCode(new WebSocket(`${url}?token=${token}`))).toBe(CLOSE_UNAUTHORIZED);
+  });
+
+  it('accepts a ticket once', async () => {
+    const ticket = await tickets.issue(token);
+    const first = new WebSocket(`${url}?ticket=${ticket}`);
+    expect(await listen(first)(1)).toEqual([{ type: 'hello', lastSeq: 0 }]);
+    expect(await closeCode(new WebSocket(`${url}?ticket=${ticket}`))).toBe(CLOSE_UNAUTHORIZED);
+    first.close();
   });
 
   it('says hello with the last seq, then pushes each new event to every open board', async () => {
-    const boards = [new WebSocket(`${url}?token=${token}`), new WebSocket(`${url}?token=${token}`)];
+    const boards = [await withTicket(), await withTicket()];
     const received = boards.map(listen);
     const [hello] = await received[0](1);
     await received[1](1);

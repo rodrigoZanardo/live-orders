@@ -113,4 +113,4 @@ To watch deliveries locally:
 WEBHOOK_SECRET=whsec_... node scripts/webhook-receiver.mjs   # listens on :4000, checks each signature
 ```
 
-Register `http://host.docker.internal:4000` as the URL when the API runs in Docker, or `http://localhost:4000` when it runs on your machine.
+Register `http://host.docker.internal:4000` as the URL when the API runs in Docker, or `http://localhost:4000` when it runs on your machine. Both are private targets, which the API refuses unless `ALLOW_PRIVATE_WEBHOOK_TARGETS=true` (set in `docker-compose.yml`; never in production). Otherwise localhost, private IPs and hosts that resolve to them are refused at creation and at each delivery, and redirects are not followed.

@@ -17,3 +17,8 @@ export function lateAfterMs(): number {
 export function businessTimeZone(): string {
   return process.env.BUSINESS_TIME_ZONE?.trim() || 'America/Sao_Paulo';
 }
+
+/** Lets webhooks target localhost and private networks (local demo receiver only; env ALLOW_PRIVATE_WEBHOOK_TARGETS). */
+export function allowPrivateWebhookTargets(): boolean {
+  return process.env.ALLOW_PRIVATE_WEBHOOK_TARGETS === 'true';
+}

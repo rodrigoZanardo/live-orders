@@ -8,10 +8,11 @@ import { LateOrderTimer } from '../src/application/late-orders';
 import { signWebhook } from '../src/domain/webhook-signature';
 import { configureApp } from '../src/http/configure-app';
 import { DeliveryQueue } from '../src/application/outgoing-webhooks';
+import { LiveTickets } from '../src/application/live-tickets';
 import { CleanupQueue } from '../src/infra/cleanup.queue';
 import { PrismaService } from '../src/infra/prisma.service';
 import { EventBus, InProcessEventBus } from '../src/realtime/event-bus';
-import { InMemoryUserRepository, NoDeliveryQueue, NoLateTimer } from './fakes';
+import { InMemoryLiveTickets, InMemoryUserRepository, NoDeliveryQueue, NoLateTimer } from './fakes';
 
 const describeWithDatabase = process.env.DATABASE_URL ? describe : describe.skip;
 
@@ -45,6 +46,8 @@ describeWithDatabase('incoming webhook POST /webhooks/orders', () => {
       .useValue({})
       .overrideProvider(LateOrderTimer)
       .useValue(new NoLateTimer())
+      .overrideProvider(LiveTickets)
+      .useValue(new InMemoryLiveTickets())
       .overrideProvider(EventBus)
       .useValue(new InProcessEventBus())
       .overrideProvider(UserRepository)

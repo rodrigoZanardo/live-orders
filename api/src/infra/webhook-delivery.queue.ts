@@ -7,14 +7,32 @@ import {
   WebhookSender,
   type DeliveryToSend,
 } from '../application/outgoing-webhooks';
+import { lookup } from 'dns/promises';
 import { signWebhook } from '../domain/webhook-signature';
+import { isPrivateAddress } from '../domain/webhook-subscription';
+import { allowPrivateWebhookTargets } from '../env';
 
 export const WEBHOOK_DELIVERIES_QUEUE = 'webhook-deliveries';
 const SEND_TIMEOUT_MS = 10_000;
 
-/** Signed POST with a timeout; anything but 2xx counts as a failure. */
+/**
+ * Refuses a host that resolves to any private address now, even if it was public when the
+ * subscription was created (DNS rebinding).
+ * shortcut: fetch resolves the host again, so a sub-second rebind can still slip through; pin the
+ * resolved address in a custom dispatcher if that matters.
+ */
+async function assertPublicHost(url: string): Promise<void> {
+  const host = new URL(url).hostname.replace(/^\[|\]$/g, '');
+  const addresses = await lookup(host, { all: true });
+  if (addresses.some(({ address }) => isPrivateAddress(address))) {
+    throw new Error(`${host} resolves to a private address`);
+  }
+}
+
+/** Signed POST with a timeout to a public host; anything but 2xx (a redirect too) counts as a failure. */
 export class FetchWebhookSender extends WebhookSender {
   async send(delivery: DeliveryToSend): Promise<void> {
+    if (!allowPrivateWebhookTargets()) await assertPublicHost(delivery.url);
     const timestamp = String(Math.floor(Date.now() / 1000));
     const response = await fetch(delivery.url, {
       method: 'POST',
@@ -26,6 +44,7 @@ export class FetchWebhookSender extends WebhookSender {
         'X-Event-Seq': String(delivery.eventSeq),
       },
       body: delivery.payload,
+      redirect: 'manual',
       signal: AbortSignal.timeout(SEND_TIMEOUT_MS),
     });
     if (!response.ok) {

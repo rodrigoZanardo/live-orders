@@ -47,7 +47,7 @@ const CATALOG = {
     kind: 'unauthorized',
     message: 'Webhook timestamp is too old or in the future.',
   },
-  WEBHOOK_URL_INVALID: { kind: 'rule', message: 'Webhook URL must be a valid http or https URL.' },
+  WEBHOOK_URL_INVALID: { kind: 'rule', message: 'Webhook URL must be a public http or https URL.' },
   WEBHOOK_SUBSCRIPTION_NOT_FOUND: { kind: 'not_found', message: 'Webhook subscription not found.' },
   // users and login
   EMAIL_INVALID: { kind: 'rule', message: 'Email is not valid.' },
