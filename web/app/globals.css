@@ -1,32 +1,36 @@
 @import 'tailwindcss';
 
 /*
- * Design tokens: a kitchen ticket rail (paper tickets, black ink, tomato for urgency).
+ * Design tokens: the kitchen pass. Stainless steel surfaces, and one signal colour per status
+ * (cobalt received, heat-lamp amber preparing, go-green ready), read from across the room.
  * Each token is declared once with light-dark(light, dark); the theme follows the OS
  * unless <html data-theme="light|dark"> forces one.
  */
 :root {
   color-scheme: light dark;
-  --bg: light-dark(#f3efe7, #141312);
-  --panel: light-dark(#fffdf8, #1e1c1a);
-  --panel-muted: light-dark(#ece6da, #282522);
-  --line: light-dark(#ddd5c6, #36322e);
-  --ink: light-dark(#1d1a16, #f1ece4);
-  --muted: light-dark(#6b6358, #a89f93);
-  --brand: light-dark(#b8361e, #ff7a5c);
-  --brand-subtle: light-dark(#fbe6e0, #3a1d16);
+  --bg: light-dark(#e6eaed, #0e1317);
+  --panel: light-dark(#ffffff, #172027);
+  --panel-muted: light-dark(#dce2e6, #1d2830);
+  --line: light-dark(#c3ccd2, #2c3a44);
+  --ink: light-dark(#13202a, #e5ecf1);
+  --muted: light-dark(#52616b, #94a4af);
+  --brand: light-dark(#1d5bd6, #7aa5ff);
+  --brand-subtle: light-dark(#dde8fc, #18284a);
   /* filled buttons: white text stays above 4.5:1 in both themes */
-  --brand-solid: #b8361e;
-  --brand-solid-hover: #962a16;
-  --rail: light-dark(#1d1a16, #0d0c0b);
-  --success: light-dark(#2e7d32, #7bd389);
-  --success-subtle: light-dark(#e3f2e4, #15301a);
-  --warning: light-dark(#8a5a00, #f5b544);
-  --warning-subtle: light-dark(#fdf0d5, #3a2a0a);
-  --danger: light-dark(#c62828, #ff8a80);
-  --danger-subtle: light-dark(#fde4e4, #3d1414);
-  --info: light-dark(#1f5fa8, #8ab8f0);
-  --info-subtle: light-dark(#e2ecf8, #142338);
+  --brand-solid: #1d5bd6;
+  --brand-solid-hover: #1748ad;
+  --received: light-dark(#1d5bd6, #7aa5ff);
+  --preparing: light-dark(#a86400, #f2a93b);
+  --ready: light-dark(#14744e, #4cc995);
+  --delivered: light-dark(#52616b, #94a4af);
+  --success: light-dark(#14744e, #4cc995);
+  --success-subtle: light-dark(#dcf1e7, #12301f);
+  --warning: light-dark(#8a5300, #f2a93b);
+  --warning-subtle: light-dark(#fcecd2, #3a2a0c);
+  --danger: light-dark(#c42b2b, #ff8378);
+  --danger-subtle: light-dark(#fbe1e0, #3d1616);
+  --info: light-dark(#1d5bd6, #7aa5ff);
+  --info-subtle: light-dark(#dde8fc, #18284a);
 }
 :root[data-theme='light'] {
   color-scheme: light;
@@ -46,7 +50,10 @@
   --color-brand-subtle: var(--brand-subtle);
   --color-brand-solid: var(--brand-solid);
   --color-brand-solid-hover: var(--brand-solid-hover);
-  --color-rail: var(--rail);
+  --color-received: var(--received);
+  --color-preparing: var(--preparing);
+  --color-ready: var(--ready);
+  --color-delivered: var(--delivered);
   --color-success: var(--success);
   --color-success-subtle: var(--success-subtle);
   --color-warning: var(--warning);
@@ -57,7 +64,6 @@
   --color-info-subtle: var(--info-subtle);
   --font-sans: var(--font-body), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-display), var(--font-body), sans-serif;
-  --font-mono: var(--font-mono), ui-monospace, monospace;
 }
 
 body {
@@ -66,7 +72,7 @@ body {
 }
 
 @utility panel {
-  @apply rounded-lg border border-line bg-panel;
+  @apply rounded-xl border border-line bg-panel;
 }
 @utility label {
   @apply mb-1 block text-sm font-medium text-ink;
@@ -86,14 +92,19 @@ body {
 @utility btn-danger {
   @apply btn border border-danger/40 bg-panel text-danger hover:bg-danger-subtle;
 }
+/* header tabs: the current page is underlined in the brand colour, like a selected ticket lane */
 @utility nav-link {
-  @apply flex items-center gap-2 rounded-md px-3 py-2 text-sm text-white/75 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-white aria-[current=page]:bg-white/15 aria-[current=page]:text-white;
+  @apply flex shrink-0 items-center gap-2 border-b-2 border-transparent px-1 py-3 text-sm font-medium whitespace-nowrap text-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-brand aria-[current=page]:border-brand aria-[current=page]:text-ink;
+}
+/* small controls in the header (language, theme, sign out) */
+@utility chip {
+  @apply inline-flex items-center gap-1.5 rounded-md border border-line bg-panel px-2.5 py-1.5 text-xs font-medium text-ink hover:bg-panel-muted focus-visible:outline-2 focus-visible:outline-brand disabled:opacity-60 aria-pressed:border-brand aria-pressed:bg-brand-subtle;
 }
 @utility badge {
   @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold;
 }
 @utility page-title {
-  @apply font-display text-2xl font-bold tracking-tight sm:text-3xl;
+  @apply font-display text-3xl font-extrabold tracking-wide sm:text-4xl;
 }
 @utility data-table {
   @apply w-full text-left text-sm;
@@ -105,7 +116,7 @@ body {
   }
 }
 @utility data-th {
-  @apply border-b border-line px-3 py-2 text-xs font-semibold tracking-wide text-muted uppercase;
+  @apply border-b border-line px-3 py-2 text-xs font-semibold text-muted;
 }
 @utility data-td {
   @apply border-b border-line px-3 py-2 align-top;

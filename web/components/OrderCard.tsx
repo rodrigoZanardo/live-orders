@@ -8,6 +8,15 @@ import { isLate } from '@/lib/board';
 import { NEXT_MOVES, type ApiFailure, type Order, type OrderStatus } from '@/lib/types';
 import { useErrorText } from './form';
 
+/** The ticket's left edge carries its lane colour, so a moved ticket is recognisable at a glance. */
+const STRIPE: Record<OrderStatus, string> = {
+  RECEIVED: 'border-l-received',
+  PREPARING: 'border-l-preparing',
+  READY: 'border-l-ready',
+  DELIVERED: 'border-l-delivered',
+  CANCELLED: 'border-l-line',
+};
+
 /** Minutes since a moment, refreshed every 30 s. */
 function useMinutesSince(iso: string): number {
   const [now, setNow] = useState(() => Date.now());
@@ -44,14 +53,14 @@ export function OrderCard({ order, canMove }: { order: Order; canMove: boolean }
 
   return (
     <article
-      className={`ticket-enter rounded-md border bg-panel p-3 shadow-sm ${
-        late ? 'border-danger ring-2 ring-danger/40' : 'border-line'
+      className={`ticket-enter rounded-lg border border-l-[6px] bg-panel p-3 ${
+        late ? 'border-danger ring-2 ring-danger/40' : `border-line ${STRIPE[order.status]}`
       }`}
     >
       <header className="flex items-start justify-between gap-2">
         <Link
           href={`/orders/${order.id}`}
-          className="font-mono text-xl font-bold text-ink hover:text-brand focus-visible:outline-2 focus-visible:outline-brand"
+          className="font-display text-4xl leading-none font-extrabold tabular-nums text-ink hover:text-brand focus-visible:outline-2 focus-visible:outline-brand"
           aria-label={t('details', { number: order.number })}
         >
           #{order.number}
@@ -65,7 +74,8 @@ export function OrderCard({ order, canMove }: { order: Order; canMove: boolean }
       <ul className="mt-2 space-y-0.5 text-sm text-muted">
         {order.items.map((item, index) => (
           <li key={`${item.sku}-${index}`}>
-            <span className="font-mono text-ink">{item.quantity}×</span> {item.name}
+            <span className="font-semibold tabular-nums text-ink">{item.quantity}×</span>{' '}
+            {item.name}
           </li>
         ))}
       </ul>

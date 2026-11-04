@@ -14,7 +14,7 @@ export function LocaleSwitcher() {
   const [pending, start] = useTransition();
 
   return (
-    <div role="group" aria-label={t('language')} className="grid grid-cols-2 gap-1">
+    <div role="group" aria-label={t('language')} className="flex gap-1">
       {LOCALES.map((locale) => (
         <button
           key={locale}
@@ -23,10 +23,10 @@ export function LocaleSwitcher() {
           aria-pressed={locale === current}
           disabled={pending}
           onClick={() => start(() => setLocale(locale))}
-          className="nav-link justify-center aria-pressed:bg-white/15 aria-pressed:text-white"
+          className="chip"
         >
           <Flag locale={locale} />
-          {NAMES[locale]}
+          <span className="sr-only sm:not-sr-only">{NAMES[locale]}</span>
         </button>
       ))}
     </div>

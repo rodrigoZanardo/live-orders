@@ -21,7 +21,7 @@ export function ThemeToggle({ initial }: { initial: Theme }) {
     <button
       type="button"
       onClick={next}
-      className="nav-link w-full justify-between border border-white/20"
+      className="chip"
       aria-label={t('label', { current: t(theme) })}
     >
       <span className="flex items-center gap-2">
@@ -36,9 +36,8 @@ export function ThemeToggle({ initial }: { initial: Theme }) {
           <circle cx="12" cy="12" r="9" />
           <path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" />
         </svg>
-        {t('title')}
+        {t(theme)}
       </span>
-      <span className="text-white">{t(theme)}</span>
     </button>
   );
 }

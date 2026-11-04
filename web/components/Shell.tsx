@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { logout } from '@/app/actions';
 import type { Theme } from '@/lib/theme';
 import type { Role } from '@/lib/types';
@@ -9,20 +9,21 @@ import { LocaleSwitcher } from './LocaleSwitcher';
 import { NavLink } from './NavLink';
 import { ThemeToggle } from './ThemeToggle';
 
-function Brand() {
+/** The ticket mark: a pass ticket with its tear-off edge. */
+export function BrandMark({ className = 'size-8' }: { className?: string }) {
   return (
-    <span className="flex items-center gap-2 font-display text-lg font-bold text-white">
-      <svg viewBox="0 0 32 32" className="size-7" aria-hidden>
-        <rect width="32" height="32" rx="7" fill="#b8361e" />
-        <path d="M9 8h14v16l-3-2-2 2-2-2-2 2-2-2-3 2z" fill="#fffdf8" />
-        <path d="M12 13h8M12 17h6" stroke="#b8361e" strokeWidth="2" strokeLinecap="round" />
-      </svg>
-      Live Orders
-    </span>
+    <svg viewBox="0 0 32 32" className={className} aria-hidden>
+      <rect width="32" height="32" rx="8" fill="#1d5bd6" />
+      <path d="M9 7h14v18l-2.33-1.75L18.33 25 16 23.25 13.67 25l-2.34-1.75L9 25z" fill="#fff" />
+      <path d="M12.5 12.5h7M12.5 16.5h5" stroke="#1d5bd6" strokeWidth="2" strokeLinecap="round" />
+    </svg>
   );
 }
 
-/** Dark side rail on desktop; a top bar with a collapsible menu on phones. */
+/**
+ * A light top bar instead of a side rail: the board needs the full width for its four lanes.
+ * On phones the tabs scroll sideways under the brand; settings stay one tap away.
+ */
 export function Shell({
   role,
   theme,
@@ -36,75 +37,49 @@ export function Shell({
 }) {
   const t = useTranslations('nav');
   const roles = useTranslations('roles');
-  const [open, setOpen] = useState(false);
-  const close = () => setOpen(false);
   const canCreate = role === 'STAFF' || role === 'ADMIN';
 
   return (
-    <div className="lg:grid lg:min-h-screen lg:grid-cols-[15rem_1fr]">
-      <header className="sticky top-0 z-20 bg-rail lg:static lg:flex lg:h-screen lg:flex-col lg:sticky">
-        <div className="flex items-center justify-between px-4 py-3 lg:py-5">
-          <Brand />
-          <button
-            type="button"
-            className="nav-link lg:hidden"
-            aria-expanded={open}
-            aria-controls="main-nav"
-            onClick={() => setOpen(!open)}
+    <div className="min-h-screen">
+      <header className="sticky top-0 z-20 border-b border-line bg-panel/95 backdrop-blur">
+        <div className="mx-auto flex max-w-[110rem] flex-wrap items-center gap-x-6 px-4 sm:px-6">
+          <span className="flex items-center gap-2 py-2.5 font-display text-2xl font-extrabold tracking-wide">
+            <BrandMark />
+            Live Orders
+          </span>
+          <nav
+            aria-label={t('menu')}
+            className="order-last -mx-4 flex w-[calc(100%+2rem)] gap-5 overflow-x-auto px-4 md:order-none md:mx-0 md:w-auto md:px-0"
           >
-            <svg
-              viewBox="0 0 24 24"
-              className="size-5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              aria-hidden
-            >
-              <path d={open ? 'M6 6l12 12M18 6 6 18' : 'M4 7h16M4 12h16M4 17h16'} />
-            </svg>
-            <span className="sr-only">{t('menu')}</span>
-          </button>
-        </div>
-        <nav
-          id="main-nav"
-          className={`${open ? 'flex' : 'hidden'} flex-col gap-1 px-3 pb-4 lg:flex lg:flex-1`}
-        >
-          <NavLink href="/" onNavigate={close}>
-            {t('board')}
-          </NavLink>
-          {canCreate && (
-            <NavLink href="/orders/new" onNavigate={close}>
-              {t('newOrder')}
-            </NavLink>
-          )}
-          {role === 'ADMIN' && (
-            <>
-              <NavLink href="/webhooks" onNavigate={close}>
-                {t('webhooks')}
-              </NavLink>
-              <NavLink href="/users" onNavigate={close}>
-                {t('users')}
-              </NavLink>
-            </>
-          )}
-          <a href={apiDocsUrl} className="nav-link" target="_blank" rel="noreferrer">
-            {t('apiDocs')} ↗
-          </a>
-          <div className="mt-4 flex flex-col gap-2 border-t border-white/15 pt-4 lg:mt-auto">
+            <NavLink href="/">{t('board')}</NavLink>
+            {canCreate && <NavLink href="/orders/new">{t('newOrder')}</NavLink>}
+            {role === 'ADMIN' && (
+              <>
+                <NavLink href="/webhooks">{t('webhooks')}</NavLink>
+                <NavLink href="/users">{t('users')}</NavLink>
+              </>
+            )}
+            <a href={apiDocsUrl} className="nav-link" target="_blank" rel="noreferrer">
+              {t('apiDocs')}
+            </a>
+          </nav>
+          <div className="ml-auto flex items-center gap-2 py-2">
             {role && (
-              <p className="px-3 text-xs text-white/60">{t('signedInAs', { role: roles(role) })}</p>
+              <span className="hidden text-xs text-muted lg:inline">
+                {t('signedInAs', { role: roles(role) })}
+              </span>
             )}
             <LocaleSwitcher />
             <ThemeToggle initial={theme} />
             <form action={logout}>
-              <button type="submit" className="nav-link w-full">
+              <button type="submit" className="chip">
                 {t('logout')}
               </button>
             </form>
           </div>
-        </nav>
+        </div>
       </header>
-      <main className="min-w-0 px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+      <main className="mx-auto max-w-[110rem] px-4 py-6 sm:px-6">{children}</main>
     </div>
   );
 }

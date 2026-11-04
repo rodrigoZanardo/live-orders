@@ -9,7 +9,7 @@ function Pending() {
   const { pending } = useLinkStatus();
   return pending ? (
     <span
-      className="ml-auto size-3 animate-spin rounded-full border-2 border-white/30 border-t-white"
+      className="ml-auto size-3 animate-spin rounded-full border-2 border-line border-t-brand"
       aria-hidden
     />
   ) : null;

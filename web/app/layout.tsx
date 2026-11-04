@@ -1,23 +1,19 @@
 import type { Metadata, Viewport } from 'next';
-import { Archivo, Archivo_Narrow, JetBrains_Mono } from 'next/font/google';
+import { Big_Shoulders, Figtree } from 'next/font/google';
 import { cookies } from 'next/headers';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { isTheme, THEME_COOKIE } from '@/lib/theme';
 import './globals.css';
 
-// Archivo reads well at small sizes on busy screens; the narrow cut fits column headings; mono keeps order numbers aligned.
-const body = Archivo({ subsets: ['latin'], variable: '--font-body', display: 'swap' });
-const display = Archivo_Narrow({
+// Big Shoulders comes from city signage: tall, narrow numbers that read from across a kitchen.
+// Figtree is a calm, open sans for everything people read up close.
+const body = Figtree({ subsets: ['latin'], variable: '--font-body', display: 'swap' });
+const display = Big_Shoulders({
   subsets: ['latin'],
-  weight: ['600', '700'],
+  weight: ['700', '800'],
+  adjustFontFallback: false,
   variable: '--font-display',
-  display: 'swap',
-});
-const mono = JetBrains_Mono({
-  subsets: ['latin'],
-  weight: ['500', '700'],
-  variable: '--font-mono',
   display: 'swap',
 });
 
@@ -34,7 +30,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html
       lang={await getLocale()}
       data-theme={isTheme(theme) && theme !== 'system' ? theme : undefined}
-      className={`${body.variable} ${display.variable} ${mono.variable}`}
+      className={`${body.variable} ${display.variable}`}
     >
       <body className="min-h-screen font-sans antialiased">
         <NextIntlClientProvider>{children}</NextIntlClientProvider>

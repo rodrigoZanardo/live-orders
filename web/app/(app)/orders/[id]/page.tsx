@@ -61,7 +61,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
           <ul className="text-sm">
             {order.items.map((item, index) => (
               <li key={`${item.sku}-${index}`}>
-                <span className="font-mono">{item.quantity}×</span> {item.name}{' '}
+                <span className="tabular-nums font-semibold">{item.quantity}×</span> {item.name}{' '}
                 <span className="font-mono text-xs text-muted">{item.sku}</span>
               </li>
             ))}
