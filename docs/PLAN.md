@@ -97,9 +97,10 @@ RECEIVED → PREPARING → READY → DELIVERED
 | Table | Columns | Notes |
 |---|---|---|
 | `User` | id, email (unique), passwordHash, role (`STAFF`, `VIEWER`, `ADMIN`), createdAt | scrypt hash; first admin from env on first start |
-| `Order` | fields above + createdAt | index on (createdAt), unique (channel, externalId) |
+| `Order` | fields above + `day` (business day in `BUSINESS_TIME_ZONE`) + delivery columns + createdAt | index on (createdAt), unique (day, number), unique (channel, externalId) |
+| `DailyCounter` | day (primary key), last | daily order number, incremented atomically in the create transaction |
 | `OrderItem` | id, orderId, sku, name, quantity | |
-| `Event` | `seq` (bigserial, primary key), type, orderId, payload (json), actorEmail, createdAt | the source of truth for the board and the audit trail |
+| `Event` | `seq` (bigserial, primary key), type, orderId, fromStatus, toStatus, version, actorEmail, createdAt | the source of truth for the board and the audit trail; typed columns instead of a json payload, so reads need no unchecked casts. The API joins the current order when it returns events |
 | `IdempotencyKey` | key (unique), orderId, createdAt | incoming webhook dedupe; rows older than 7 days deleted by a daily job |
 | `WebhookSubscription` | id, url, secret, active, createdAt | outgoing webhooks |
 | `WebhookDelivery` | id, subscriptionId, eventSeq, status (`PENDING`, `SENT`, `FAILED`), attempts, lastError, updatedAt | visible to admins |

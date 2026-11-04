@@ -1,0 +1,85 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OrderStatus {
+  RECEIVED
+  PREPARING
+  READY
+  DELIVERED
+  CANCELLED
+}
+
+enum OrderChannel {
+  COUNTER
+  DELIVERY_PLATFORM
+}
+
+enum EventType {
+  ORDER_CREATED
+  ORDER_STATUS_CHANGED
+}
+
+model Order {
+  id               String       @id @db.Uuid
+  /// business day (YYYY-MM-DD in BUSINESS_TIME_ZONE) the order belongs to
+  day              String
+  number           Int
+  customerName     String
+  channel          OrderChannel
+  status           OrderStatus
+  version          Int
+  statusChangedAt  DateTime
+  externalId       String?
+  deliveryCep      String?
+  deliveryStreet   String?
+  deliveryNumber   String?
+  deliveryDistrict String?
+  deliveryCity     String?
+  deliveryState    String?
+  createdAt        DateTime
+  items            OrderItem[]
+  events           Event[]
+
+  @@unique([day, number])
+  @@unique([channel, externalId])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id       String @id @default(uuid()) @db.Uuid
+  orderId  String @db.Uuid
+  order    Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  position Int
+  sku      String
+  name     String
+  quantity Int
+
+  @@index([orderId])
+}
+
+/// Last order number given out per business day; incremented atomically.
+model DailyCounter {
+  day  String @id
+  last Int
+}
+
+/// Source of truth for the board and the audit trail; written in the same transaction as the change.
+model Event {
+  seq        BigInt       @id @default(autoincrement())
+  type       EventType
+  orderId    String       @db.Uuid
+  order      Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  fromStatus OrderStatus?
+  toStatus   OrderStatus
+  version    Int
+  actorEmail String
+  createdAt  DateTime     @default(now())
+
+  @@index([orderId])
+}

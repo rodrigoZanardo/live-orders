@@ -2,7 +2,7 @@
   "name": "@live/api",
   "private": true,
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "prisma generate && tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "jest --passWithNoTests"
   },
@@ -13,5 +13,14 @@
       "<rootDir>/src",
       "<rootDir>/test"
     ]
+  },
+  "dependencies": {
+    "@nestjs/common": "^10.4.22",
+    "@prisma/client": "^5.22.0",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "prisma": "^5.22.0"
   }
 }
