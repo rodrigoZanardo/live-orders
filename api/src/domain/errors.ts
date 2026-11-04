@@ -36,6 +36,9 @@ const CATALOG = {
   },
   WEBHOOK_URL_INVALID: { kind: 'rule', message: 'Webhook URL must be a valid http or https URL.' },
   // users and login
+  EMAIL_INVALID: { kind: 'rule', message: 'Email is not valid.' },
+  PASSWORD_TOO_SHORT: { kind: 'rule', message: 'Password must have at least {min} characters.' },
+  EMAIL_TAKEN: { kind: 'rule', message: 'User {email} already exists.' },
   INVALID_CREDENTIALS: { kind: 'unauthorized', message: 'Invalid email or password.' },
   TOO_MANY_ATTEMPTS: {
     kind: 'too_many',

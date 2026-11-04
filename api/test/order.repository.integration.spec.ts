@@ -120,7 +120,9 @@ describeWithDatabase('PrismaOrderRepository on a real database', () => {
     await repo.saveMove(moved, 'staff@example.com');
 
     const all = await repo.findEventsAfter(0, 500);
-    expect(all.map((event) => event.seq)).toEqual([...all.map((event) => event.seq)].sort((a, b) => a - b));
+    expect(all.map((event) => event.seq)).toEqual(
+      [...all.map((event) => event.seq)].sort((a, b) => a - b),
+    );
     expect(await repo.findEventsAfter(all[0]?.seq ?? 0, 500)).toEqual(all.slice(1));
     expect(await repo.findEventsAfter(0, 1)).toEqual(all.slice(0, 1));
   });

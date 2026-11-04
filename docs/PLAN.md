@@ -88,7 +88,7 @@ RECEIVED → PREPARING → READY → DELIVERED
 
 ### Error catalog (stable codes, translated in the web app)
 
-`ORDER_NOT_FOUND`, `STATUS_MOVE_INVALID`, `ORDER_CHANGED`, `ITEMS_INVALID`, `CUSTOMER_NAME_INVALID`, `CEP_INVALID`, `EXTERNAL_ID_REQUIRED`, `WEBHOOK_SIGNATURE_INVALID`, `WEBHOOK_TOO_OLD`, `WEBHOOK_URL_INVALID`, `INVALID_CREDENTIALS`, `TOO_MANY_ATTEMPTS`, `SESSION_INVALID`, `FORBIDDEN`, `INVALID_INPUT`. Same response shape as Stock Manager: `{ statusCode, code, message, params }`, with a test that fails if a code has no translation.
+`ORDER_NOT_FOUND`, `STATUS_MOVE_INVALID`, `ORDER_CHANGED`, `ITEMS_INVALID`, `CUSTOMER_NAME_INVALID`, `CEP_INVALID`, `EXTERNAL_ID_REQUIRED`, `WEBHOOK_SIGNATURE_INVALID`, `WEBHOOK_TOO_OLD`, `WEBHOOK_URL_INVALID`, `EMAIL_INVALID`, `PASSWORD_TOO_SHORT`, `EMAIL_TAKEN`, `INVALID_CREDENTIALS`, `TOO_MANY_ATTEMPTS`, `SESSION_INVALID`, `FORBIDDEN`, `INVALID_INPUT`. Same response shape as Stock Manager: `{ statusCode, code, message, params }`, with a test that fails if a code has no translation.
 
 ---
 
@@ -96,7 +96,7 @@ RECEIVED → PREPARING → READY → DELIVERED
 
 | Table | Columns | Notes |
 |---|---|---|
-| `User` | id, email (unique), passwordHash, role (`STAFF`, `VIEWER`, `ADMIN`), createdAt | scrypt hash; first admin from env on first start |
+| `User` | id, email (unique), passwordHash, role (`STAFF`, `VIEWER`, `ADMIN`), failedLogins, lockedUntil, createdAt | scrypt hash; first admin from env on first start |
 | `Order` | fields above + `day` (business day in `BUSINESS_TIME_ZONE`) + delivery columns + createdAt | index on (createdAt), unique (day, number), unique (channel, externalId) |
 | `DailyCounter` | day (primary key), last | daily order number, incremented atomically in the create transaction |
 | `OrderItem` | id, orderId, sku, name, quantity | |

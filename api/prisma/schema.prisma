@@ -7,6 +7,22 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  ADMIN
+  STAFF
+  VIEWER
+}
+
+model User {
+  id           String    @id @db.Uuid
+  email        String    @unique
+  passwordHash String
+  role         Role
+  failedLogins Int       @default(0)
+  lockedUntil  DateTime?
+  createdAt    DateTime  @default(now())
+}
+
 enum OrderStatus {
   RECEIVED
   PREPARING
