@@ -37,7 +37,7 @@
     "title": "Which part do you need?",
     "back": "Back to start",
     "empty": "No parts yet.",
-    "unavailable": "The stock service is waking up (free hosting). Reload the page in a few seconds.",
+    "unavailable": "The stock service is waking up (free hosting). The list appears by itself in a few seconds.",
     "inStock": "In stock",
     "available": "{count} in stock",
     "outOfStock": "Out of stock",

@@ -2,6 +2,7 @@ import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import { CustomerCatalog } from '@/components/CustomerCatalog';
 import { LocaleSwitcher } from '@/components/LocaleSwitcher';
+import { RetrySoon } from '@/components/RetrySoon';
 import { BrandMark } from '@/components/Shell';
 import { currentRole } from '@/lib/api';
 import { listStockProducts } from '@/lib/stock';
@@ -40,8 +41,9 @@ export default async function CustomerPage() {
         {products ? (
           <CustomerCatalog products={products} role={role} />
         ) : (
-          <p role="alert" className="mx-auto max-w-6xl px-4 py-10 text-danger sm:px-6">
+          <p role="status" className="mx-auto max-w-6xl px-4 py-10 text-muted sm:px-6">
             {t('unavailable')}
+            <RetrySoon />
           </p>
         )}
       </main>
