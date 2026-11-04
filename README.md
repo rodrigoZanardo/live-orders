@@ -9,9 +9,9 @@
 
 **An order board that updates live on every open screen.** The kitchen moves an order and the counter, the dashboard and any connected system see it at the same moment, with no reload.
 
-| Light, Portuguese | Dark, English |
+| Board, light theme | Parts catalog, dark theme |
 |---|---|
-| ![Board in light theme](docs/board.png) | ![Board in dark theme](docs/board-dark.png) |
+| ![Order board in light theme](docs/board.png) | ![Customer parts catalog in dark theme](docs/board-dark.png) |
 
 **Live demo:** https://live-orders-web.onrender.com, sign in with `demo@example.com` / `demo-orders-2026`. The parts catalog for customers is at [/cliente](https://live-orders-web.onrender.com/cliente) and the API docs (Swagger) at https://live-orders-api-c5zu.onrender.com/docs. Free plan: the first visit after a quiet period can take about a minute.
 
