@@ -16,6 +16,9 @@ services:
     dockerContext: .
     healthCheckPath: /health
     envVars:
+      # Render routes to $PORT; pin it to the port the API image listens on
+      - key: PORT
+        value: '3001'
       # the shared free Postgres with ?schema=live_orders at the end (Prisma creates the schema)
       - key: DATABASE_URL
         sync: false
