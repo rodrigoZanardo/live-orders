@@ -115,6 +115,21 @@ body {
     @apply data-td;
   }
 }
+/* customer counter: the order as the carbon-copy ticket a parts counter hands over, torn edge on top */
+@utility ticket {
+  background: light-dark(#f8f0c8, #2a2616);
+  color: var(--ink);
+  border-radius: 0 0 0.5rem 0.5rem;
+  mask:
+    linear-gradient(#000 0 0) 0 8px / 100% calc(100% - 8px) no-repeat,
+    conic-gradient(from 135deg at top, #0000, #000 1deg 90deg, #0000 91deg) 0 0 / 16px 8px repeat-x;
+}
+/* part number stamped on a yellow tag, as on the boxes behind the counter */
+@utility part-tag {
+  @apply inline-flex min-w-20 justify-center rounded-sm px-2 py-1 font-display text-sm font-extrabold tracking-wide tabular-nums;
+  background: #f0c419;
+  color: #1a1a1a;
+}
 @utility data-th {
   @apply border-b border-line px-3 py-2 text-xs font-semibold text-muted;
 }

@@ -3,29 +3,37 @@ import type { OrderItem, ShopProduct } from './types';
 /** The API accepts 1 to 99 of one item per order. */
 const MAX_PER_ITEM = 99;
 
-/** Quantities are kept as typed; anything that is not a whole number above zero counts as none. */
-export function parseQuantity(typed: string | undefined): number {
-  const value = Number(typed);
-  return Number.isInteger(value) && value > 0 ? value : 0;
-}
+/** Quantity of each product in the cart, by SKU. */
+export type Cart = Record<string, number>;
 
 /** Most one customer may order: stock on hand when staff sees it, always capped at the API limit. */
 export function maxQuantity(product: ShopProduct): number {
   return Math.min(product.quantity ?? MAX_PER_ITEM, MAX_PER_ITEM);
 }
 
-/** A hint only: the API checks stock and limits again on submit. */
-export function exceedsLimit(product: ShopProduct, typed: string | undefined): boolean {
-  return parseQuantity(typed) > maxQuantity(product);
+/** The cart with this product set to `quantity`, kept between 0 (removed) and the limit. A hint only: the API checks again. */
+export function setQuantity(cart: Cart, product: ShopProduct, quantity: number): Cart {
+  const rest = Object.fromEntries(Object.entries(cart).filter(([sku]) => sku !== product.sku));
+  const max = product.inStock ? maxQuantity(product) : 0;
+  const clamped = Math.min(Math.max(Math.trunc(quantity) || 0, 0), max);
+  return clamped > 0 ? { ...rest, [product.sku]: clamped } : rest;
 }
 
-/** Order lines for the chosen quantities, in product order; products with no quantity are left out. */
-export function orderItems(
-  products: ShopProduct[],
-  typed: Record<string, string | undefined>,
-): OrderItem[] {
+/** Products whose name or SKU contains the search text, ignoring case and accents. */
+export function filterProducts(products: ShopProduct[], search: string): ShopProduct[] {
+  const plain = (text: string) =>
+    text
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '')
+      .toLowerCase();
+  const wanted = plain(search.trim());
+  return products.filter((product) => plain(`${product.name} ${product.sku}`).includes(wanted));
+}
+
+/** Order lines for the cart, in product order; products not in the cart are left out. */
+export function orderItems(products: ShopProduct[], cart: Cart): OrderItem[] {
   return products.flatMap((product) => {
-    const quantity = parseQuantity(typed[product.sku]);
+    const quantity = cart[product.sku] ?? 0;
     return quantity > 0 ? [{ sku: product.sku, name: product.name, quantity }] : [];
   });
 }

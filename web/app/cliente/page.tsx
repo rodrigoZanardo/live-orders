@@ -18,27 +18,33 @@ export default async function CustomerPage() {
   });
 
   return (
-    <main className="mx-auto max-w-3xl space-y-6 px-4 py-6 sm:px-6">
-      <header className="flex flex-wrap items-center gap-3">
-        <Link href="/" className="chip">
-          {t('back')}
-        </Link>
-        <span className="flex items-center gap-2 font-display text-2xl font-extrabold tracking-wide">
-          <BrandMark />
-          Live Orders
-        </span>
-        <div className="ml-auto">
-          <LocaleSwitcher />
+    <>
+      <header className="sticky top-0 z-10 border-b border-line bg-panel/90 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3 sm:px-6">
+          <Link
+            href="/"
+            className="flex items-center gap-2 font-display text-2xl font-extrabold tracking-wide"
+          >
+            <BrandMark />
+            Live Orders
+          </Link>
+          <div className="ml-auto flex items-center gap-2">
+            <Link href="/" className="chip hidden sm:inline-flex">
+              {t('back')}
+            </Link>
+            <LocaleSwitcher />
+          </div>
         </div>
       </header>
-      <h1 className="page-title">{t('title')}</h1>
-      {products ? (
-        <CustomerCatalog products={products} role={role} />
-      ) : (
-        <p role="alert" className="text-sm text-danger">
-          {t('unavailable')}
-        </p>
-      )}
-    </main>
+      <main>
+        {products ? (
+          <CustomerCatalog products={products} role={role} />
+        ) : (
+          <p role="alert" className="mx-auto max-w-6xl px-4 py-10 text-danger sm:px-6">
+            {t('unavailable')}
+          </p>
+        )}
+      </main>
+    </>
   );
 }
