@@ -6,7 +6,8 @@
     "build": "next build",
     "start": "next start -p 3000",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "test": "jest --passWithNoTests"
+    "test": "jest --passWithNoTests",
+    "e2e": "playwright test"
   },
   "jest": {
     "testEnvironment": "node",
@@ -26,5 +27,8 @@
         }
       ]
     }
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.51.1"
   }
 }
