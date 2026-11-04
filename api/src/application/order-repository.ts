@@ -1,4 +1,4 @@
-import type { Order } from '../domain/order';
+import type { Order, OrderChannel } from '../domain/order';
 import type { OrderStatus } from '../domain/order-status';
 
 export const EVENT_TYPES = ['ORDER_CREATED', 'ORDER_STATUS_CHANGED', 'ORDER_LATE'] as const;
@@ -16,17 +16,34 @@ export type OrderEvent = {
   createdAt: Date;
 };
 
+/** Thrown by `create` when the idempotency key or (channel, externalId) already exists. */
+export class DuplicateOrderError extends Error {
+  constructor() {
+    super('Order already exists');
+  }
+}
+
 /** Port: the application depends on this, infra implements it. Every write also stores its event atomically. */
 export abstract class OrderRepository {
   /**
    * Takes the next number of `day`, builds the order with it and saves order + ORDER_CREATED event
    * in one transaction. If `build` throws, nothing is saved and the number is not used.
+   * With `idempotencyKey`, the key is stored in the same transaction; a repeated key or external id
+   * throws DuplicateOrderError.
    */
   abstract create(
     day: string,
     build: (number: number) => Order,
     actorEmail: string,
+    idempotencyKey?: string,
   ): Promise<{ order: Order; event: OrderEvent }>;
+
+  abstract findByIdempotencyKey(key: string): Promise<Order | null>;
+
+  abstract findByExternalId(channel: OrderChannel, externalId: string): Promise<Order | null>;
+
+  /** Deletes idempotency keys created before `before`; returns how many. */
+  abstract deleteIdempotencyKeysBefore(before: Date): Promise<number>;
 
   /**
    * Saves a status move made on `order`, only if the stored version is still `order.version - 1`.

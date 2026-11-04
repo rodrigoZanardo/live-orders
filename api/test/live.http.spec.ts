@@ -6,6 +6,7 @@ import { WebSocket } from 'ws';
 import { AppModule } from '../src/app.module';
 import { TokenService, UserRepository } from '../src/application/auth.ports';
 import { LateOrderTimer } from '../src/application/late-orders';
+import { CleanupQueue } from '../src/infra/cleanup.queue';
 import { configureApp } from '../src/http/configure-app';
 import { PrismaService } from '../src/infra/prisma.service';
 import { EventBus, InProcessEventBus } from '../src/realtime/event-bus';
@@ -45,6 +46,8 @@ describeWithDatabase('live WebSocket', () => {
     process.env.ADMIN_PASSWORD = 'admin-password';
 
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+      .overrideProvider(CleanupQueue)
+      .useValue({})
       .overrideProvider(LateOrderTimer)
       .useValue(new NoLateTimer())
       .overrideProvider(EventBus)

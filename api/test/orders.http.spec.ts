@@ -4,6 +4,7 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { TokenService, UserRepository, type Actor } from '../src/application/auth.ports';
 import { LateOrderTimer } from '../src/application/late-orders';
+import { CleanupQueue } from '../src/infra/cleanup.queue';
 import { configureApp } from '../src/http/configure-app';
 import { EventBus, InProcessEventBus } from '../src/realtime/event-bus';
 import { PrismaService } from '../src/infra/prisma.service';
@@ -32,6 +33,8 @@ describeWithDatabase('orders API over HTTP', () => {
     process.env.ADMIN_PASSWORD = 'admin-password';
 
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+      .overrideProvider(CleanupQueue)
+      .useValue({})
       .overrideProvider(LateOrderTimer)
       .useValue(new NoLateTimer())
       .overrideProvider(EventBus)

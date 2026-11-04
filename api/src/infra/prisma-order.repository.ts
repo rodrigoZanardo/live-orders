@@ -1,8 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import type { Event, Order as OrderRow, OrderItem as OrderItemRow, Prisma } from '@prisma/client';
-import { OrderRepository, type OrderEvent } from '../application/order-repository';
+import {
+  Prisma,
+  type Event,
+  type Order as OrderRow,
+  type OrderItem as OrderItemRow,
+} from '@prisma/client';
+import {
+  DuplicateOrderError,
+  OrderRepository,
+  type OrderEvent,
+} from '../application/order-repository';
 import { AppError } from '../domain/errors';
-import { Order } from '../domain/order';
+import { Order, type OrderChannel } from '../domain/order';
 import { PrismaService } from './prisma.service';
 
 type OrderWithItems = OrderRow & { items: OrderItemRow[] };
@@ -22,6 +31,46 @@ export class PrismaOrderRepository extends OrderRepository {
     day: string,
     build: (number: number) => Order,
     actorEmail: string,
+    idempotencyKey?: string,
+  ): Promise<{ order: Order; event: OrderEvent }> {
+    try {
+      return await this.insert(day, build, actorEmail, idempotencyKey);
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        throw new DuplicateOrderError();
+      }
+      throw error;
+    }
+  }
+
+  async findByIdempotencyKey(key: string): Promise<Order | null> {
+    const row = await this.db.idempotencyKey.findUnique({
+      where: { key },
+      include: { order: { include: withItems } },
+    });
+    return row ? toOrder(row.order) : null;
+  }
+
+  async findByExternalId(channel: OrderChannel, externalId: string): Promise<Order | null> {
+    const row = await this.db.order.findUnique({
+      where: { channel_externalId: { channel, externalId } },
+      include: withItems,
+    });
+    return row ? toOrder(row) : null;
+  }
+
+  async deleteIdempotencyKeysBefore(before: Date): Promise<number> {
+    const { count } = await this.db.idempotencyKey.deleteMany({
+      where: { createdAt: { lt: before } },
+    });
+    return count;
+  }
+
+  private insert(
+    day: string,
+    build: (number: number) => Order,
+    actorEmail: string,
+    idempotencyKey: string | undefined,
   ): Promise<{ order: Order; event: OrderEvent }> {
     return this.db.$transaction(async (tx) => {
       // native upsert: one atomic INSERT ... ON CONFLICT DO UPDATE, so parallel creates never share a number
@@ -56,6 +105,10 @@ export class PrismaOrderRepository extends OrderRepository {
           },
         },
       });
+
+      if (idempotencyKey) {
+        await tx.idempotencyKey.create({ data: { key: idempotencyKey, orderId: order.id } });
+      }
 
       const event = await tx.event.create({
         data: {

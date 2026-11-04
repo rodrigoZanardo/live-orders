@@ -63,6 +63,7 @@ model Order {
   createdAt        DateTime
   items            OrderItem[]
   events           Event[]
+  idempotencyKeys  IdempotencyKey[]
 
   @@unique([day, number])
   @@unique([channel, externalId])
@@ -100,4 +101,14 @@ model Event {
   createdAt  DateTime     @default(now())
 
   @@index([orderId])
+}
+
+/// Incoming webhook dedupe: the same key twice returns the first order. Deleted after 7 days.
+model IdempotencyKey {
+  key       String   @id
+  orderId   String   @db.Uuid
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
 }

@@ -5,6 +5,7 @@ import { AppModule } from '../src/app.module';
 import { PasswordHasher, TokenService, UserRepository } from '../src/application/auth.ports';
 import { OrderRepository } from '../src/application/order-repository';
 import { LateOrderTimer } from '../src/application/late-orders';
+import { CleanupQueue } from '../src/infra/cleanup.queue';
 import { configureApp } from '../src/http/configure-app';
 import { EventBus, InProcessEventBus } from '../src/realtime/event-bus';
 import { PrismaService } from '../src/infra/prisma.service';
@@ -21,6 +22,8 @@ describe('auth over HTTP', () => {
     process.env.ADMIN_PASSWORD = 'admin-password';
 
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+      .overrideProvider(CleanupQueue)
+      .useValue({})
       .overrideProvider(LateOrderTimer)
       .useValue(new NoLateTimer())
       .overrideProvider(EventBus)

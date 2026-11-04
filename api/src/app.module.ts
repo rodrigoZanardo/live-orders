@@ -30,6 +30,14 @@ import { PrismaService } from './infra/prisma.service';
 import { LiveEvents } from './application/live-events';
 import { EventBus, RedisEventBus } from './realtime/event-bus';
 import { LiveGateway } from './realtime/live.gateway';
+import { AddressLookup } from './application/address-lookup';
+import {
+  CleanupIdempotencyKeysUseCase,
+  ReceivePlatformOrderUseCase,
+} from './application/platform-orders';
+import { CleanupQueue } from './infra/cleanup.queue';
+import { ViaCepClient } from './infra/viacep.client';
+import { AddressController, IncomingWebhookController } from './http/webhooks.controller';
 
 @Module({
   imports: [
@@ -43,6 +51,8 @@ import { LiveGateway } from './realtime/live.gateway';
     OrderController,
     EventController,
     HealthController,
+    IncomingWebhookController,
+    AddressController,
   ],
   providers: [
     PrismaService,
@@ -56,6 +66,15 @@ import { LiveGateway } from './realtime/live.gateway';
     { provide: LiveEvents, useExisting: EventBus },
     LiveGateway,
     MarkLateUseCase,
+    ReceivePlatformOrderUseCase,
+    CleanupIdempotencyKeysUseCase,
+    { provide: AddressLookup, useFactory: () => new ViaCepClient() },
+    {
+      provide: CleanupQueue,
+      inject: [CleanupIdempotencyKeysUseCase],
+      useFactory: (cleanup: CleanupIdempotencyKeysUseCase) =>
+        new CleanupQueue(requiredEnv('REDIS_URL'), cleanup),
+    },
     {
       provide: LateOrderTimer,
       inject: [MarkLateUseCase],
