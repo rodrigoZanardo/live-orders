@@ -20,7 +20,7 @@ See [docs/PLAN.md](docs/PLAN.md). The layout and commands are added as the code 
 
 ## Git
 
-- Conventional Commits, scoped by folder: `feat(stock): ...`, `fix(web): ...`, `test(reports): ...`, `docs: ...`.
+- Conventional Commits, scoped by folder: `feat(api): ...`, `fix(web): ...`, `test(api): ...`, `docs: ...`.
 - One commit changes structure **or** behaviour, not both.
 - Do not commit or push unless asked.
 
