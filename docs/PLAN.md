@@ -88,7 +88,7 @@ RECEIVED → PREPARING → READY → DELIVERED
 
 ### Error catalog (stable codes, translated in the web app)
 
-`ORDER_NOT_FOUND`, `STATUS_MOVE_INVALID`, `ORDER_CHANGED`, `ITEMS_INVALID`, `CUSTOMER_NAME_INVALID`, `CEP_INVALID`, `EXTERNAL_ID_REQUIRED`, `WEBHOOK_SIGNATURE_INVALID`, `WEBHOOK_TOO_OLD`, `WEBHOOK_URL_INVALID`, `EMAIL_INVALID`, `PASSWORD_TOO_SHORT`, `EMAIL_TAKEN`, `INVALID_CREDENTIALS`, `TOO_MANY_ATTEMPTS`, `SESSION_INVALID`, `FORBIDDEN`, `INVALID_INPUT`. Same response shape as Stock Manager: `{ statusCode, code, message, params }`, with a test that fails if a code has no translation.
+`ORDER_NOT_FOUND`, `STATUS_MOVE_INVALID`, `ORDER_CHANGED`, `ITEMS_INVALID`, `CUSTOMER_NAME_INVALID`, `CEP_INVALID`, `EXTERNAL_ID_REQUIRED`, `WEBHOOK_SIGNATURE_INVALID`, `WEBHOOK_TOO_OLD`, `WEBHOOK_URL_INVALID`, `WEBHOOK_SUBSCRIPTION_NOT_FOUND`, `EMAIL_INVALID`, `PASSWORD_TOO_SHORT`, `EMAIL_TAKEN`, `INVALID_CREDENTIALS`, `TOO_MANY_ATTEMPTS`, `SESSION_INVALID`, `FORBIDDEN`, `INVALID_INPUT`. Same response shape as Stock Manager: `{ statusCode, code, message, params }`, with a test that fails if a code has no translation.
 
 ---
 
@@ -103,7 +103,7 @@ RECEIVED → PREPARING → READY → DELIVERED
 | `Event` | `seq` (bigserial, primary key), type, orderId, fromStatus, toStatus, version, actorEmail, createdAt | the source of truth for the board and the audit trail; typed columns instead of a json payload, so reads need no unchecked casts. The API joins the current order when it returns events |
 | `IdempotencyKey` | key (unique), orderId, createdAt | incoming webhook dedupe; rows older than 7 days deleted by a daily job |
 | `WebhookSubscription` | id, url, secret, active, createdAt | outgoing webhooks |
-| `WebhookDelivery` | id, subscriptionId, eventSeq, status (`PENDING`, `SENT`, `FAILED`), attempts, lastError, updatedAt | visible to admins |
+| `WebhookDelivery` | id, subscriptionId, eventSeq, eventType, payload (exact body sent), status (`PENDING`, `SENT`, `FAILED`), attempts, lastError, updatedAt | visible to admins |
 | `FailedLogin` handled as in Stock Manager | per-account lockout: 5 failures, 15 minutes | |
 
 Every change to an order writes the `Order` row and its `Event` row in **one transaction**. The update is conditional on `version` (`updateMany where id and version`), so the race is decided by the database.

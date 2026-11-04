@@ -35,6 +35,7 @@ const CATALOG = {
     message: 'Webhook timestamp is too old or in the future.',
   },
   WEBHOOK_URL_INVALID: { kind: 'rule', message: 'Webhook URL must be a valid http or https URL.' },
+  WEBHOOK_SUBSCRIPTION_NOT_FOUND: { kind: 'not_found', message: 'Webhook subscription not found.' },
   // users and login
   EMAIL_INVALID: { kind: 'rule', message: 'Email is not valid.' },
   PASSWORD_TOO_SHORT: { kind: 'rule', message: 'Password must have at least {min} characters.' },

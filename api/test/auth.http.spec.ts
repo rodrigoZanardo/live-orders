@@ -5,11 +5,18 @@ import { AppModule } from '../src/app.module';
 import { PasswordHasher, TokenService, UserRepository } from '../src/application/auth.ports';
 import { OrderRepository } from '../src/application/order-repository';
 import { LateOrderTimer } from '../src/application/late-orders';
+import { DeliveryQueue } from '../src/application/outgoing-webhooks';
 import { CleanupQueue } from '../src/infra/cleanup.queue';
 import { configureApp } from '../src/http/configure-app';
 import { EventBus, InProcessEventBus } from '../src/realtime/event-bus';
 import { PrismaService } from '../src/infra/prisma.service';
-import { FakePasswordHasher, FakeTokenService, InMemoryUserRepository, NoLateTimer } from './fakes';
+import {
+  FakePasswordHasher,
+  FakeTokenService,
+  InMemoryUserRepository,
+  NoDeliveryQueue,
+  NoLateTimer,
+} from './fakes';
 
 /** The real module and HTTP setup, with in-memory users: checks the guard, roles and error format. */
 describe('auth over HTTP', () => {
@@ -22,6 +29,8 @@ describe('auth over HTTP', () => {
     process.env.ADMIN_PASSWORD = 'admin-password';
 
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+      .overrideProvider(DeliveryQueue)
+      .useValue(new NoDeliveryQueue())
       .overrideProvider(CleanupQueue)
       .useValue({})
       .overrideProvider(LateOrderTimer)

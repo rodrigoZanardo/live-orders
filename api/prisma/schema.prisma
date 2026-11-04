@@ -112,3 +112,36 @@ model IdempotencyKey {
 
   @@index([createdAt])
 }
+
+/// Outgoing webhooks: every order event is POSTed, signed with the subscription's own secret.
+model WebhookSubscription {
+  id         String            @id @db.Uuid
+  url        String
+  secret     String
+  active     Boolean           @default(true)
+  createdAt  DateTime          @default(now())
+  deliveries WebhookDelivery[]
+}
+
+enum DeliveryStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+model WebhookDelivery {
+  id             String              @id @default(uuid()) @db.Uuid
+  subscriptionId String              @db.Uuid
+  subscription   WebhookSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  eventSeq       BigInt
+  eventType      EventType
+  /// the exact JSON body sent on every attempt
+  payload        String
+  status         DeliveryStatus      @default(PENDING)
+  attempts       Int                 @default(0)
+  lastError      String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@index([status, createdAt])
+}

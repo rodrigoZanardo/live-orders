@@ -36,6 +36,23 @@ import {
   ReceivePlatformOrderUseCase,
 } from './application/platform-orders';
 import { CleanupQueue } from './infra/cleanup.queue';
+import {
+  CreateSubscriptionUseCase,
+  DeleteSubscriptionUseCase,
+  DeliverWebhookUseCase,
+  DeliveryQueue,
+  FanOutLiveEvents,
+  ListDeliveriesUseCase,
+  ListSubscriptionsUseCase,
+  WebhookDispatch,
+  WebhookRepository,
+  WebhookSender,
+} from './application/outgoing-webhooks';
+import { WEBHOOK_RETRY_DELAYS_MS } from './domain/webhook-subscription';
+import { OutgoingWebhooksController } from './http/outgoing-webhooks.controller';
+import { toEventWithOrderResponse } from './http/order.dto';
+import { PrismaWebhookRepository } from './infra/prisma-webhook.repository';
+import { BullDeliveryQueue, FetchWebhookSender } from './infra/webhook-delivery.queue';
 import { ViaCepClient } from './infra/viacep.client';
 import { AddressController, IncomingWebhookController } from './http/webhooks.controller';
 
@@ -53,6 +70,7 @@ import { AddressController, IncomingWebhookController } from './http/webhooks.co
     HealthController,
     IncomingWebhookController,
     AddressController,
+    OutgoingWebhooksController,
   ],
   providers: [
     PrismaService,
@@ -63,7 +81,33 @@ import { AddressController, IncomingWebhookController } from './http/webhooks.co
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_FILTER, useClass: AppErrorFilter },
     { provide: EventBus, useFactory: () => new RedisEventBus(requiredEnv('REDIS_URL')) },
-    { provide: LiveEvents, useExisting: EventBus },
+    {
+      provide: LiveEvents,
+      inject: [EventBus, WebhookDispatch],
+      useFactory: (bus: EventBus, webhooks: WebhookDispatch) =>
+        new FanOutLiveEvents([bus, webhooks]),
+    },
+    {
+      provide: WebhookDispatch,
+      inject: [WebhookRepository, DeliveryQueue],
+      useFactory: (repository: WebhookRepository, queue: DeliveryQueue) =>
+        new WebhookDispatch(repository, queue, (event) =>
+          JSON.stringify(toEventWithOrderResponse(event)),
+        ),
+    },
+    {
+      provide: DeliveryQueue,
+      inject: [DeliverWebhookUseCase],
+      useFactory: (deliver: DeliverWebhookUseCase) =>
+        new BullDeliveryQueue(requiredEnv('REDIS_URL'), deliver, WEBHOOK_RETRY_DELAYS_MS),
+    },
+    { provide: WebhookRepository, useClass: PrismaWebhookRepository },
+    { provide: WebhookSender, useClass: FetchWebhookSender },
+    DeliverWebhookUseCase,
+    CreateSubscriptionUseCase,
+    ListSubscriptionsUseCase,
+    DeleteSubscriptionUseCase,
+    ListDeliveriesUseCase,
     LiveGateway,
     MarkLateUseCase,
     ReceivePlatformOrderUseCase,

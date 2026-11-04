@@ -4,6 +4,7 @@ import {
   UserRepository,
   type Actor,
 } from '../src/application/auth.ports';
+import { DeliveryQueue } from '../src/application/outgoing-webhooks';
 import { LateOrderTimer } from '../src/application/late-orders';
 import { AppError } from '../src/domain/errors';
 import { User } from '../src/domain/user';
@@ -107,5 +108,14 @@ export class NoLateTimer extends LateOrderTimer {
 
   async start(orderId: string, version: number): Promise<void> {
     this.started.push({ orderId, version });
+  }
+}
+
+/** Delivery queue that only records ids; the BullMQ queue has its own integration test. */
+export class NoDeliveryQueue extends DeliveryQueue {
+  readonly queued: string[] = [];
+
+  async enqueue(deliveryIds: string[]): Promise<void> {
+    this.queued.push(...deliveryIds);
   }
 }

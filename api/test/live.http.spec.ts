@@ -6,12 +6,13 @@ import { WebSocket } from 'ws';
 import { AppModule } from '../src/app.module';
 import { TokenService, UserRepository } from '../src/application/auth.ports';
 import { LateOrderTimer } from '../src/application/late-orders';
+import { DeliveryQueue } from '../src/application/outgoing-webhooks';
 import { CleanupQueue } from '../src/infra/cleanup.queue';
 import { configureApp } from '../src/http/configure-app';
 import { PrismaService } from '../src/infra/prisma.service';
 import { EventBus, InProcessEventBus } from '../src/realtime/event-bus';
 import { CLOSE_UNAUTHORIZED } from '../src/realtime/live.gateway';
-import { FakeTokenService, InMemoryUserRepository, NoLateTimer } from './fakes';
+import { FakeTokenService, InMemoryUserRepository, NoDeliveryQueue, NoLateTimer } from './fakes';
 
 // The WebSocket endpoint on a real database (skipped without DATABASE_URL); Redis is replaced by an in-process bus.
 const describeWithDatabase = process.env.DATABASE_URL ? describe : describe.skip;
@@ -46,6 +47,8 @@ describeWithDatabase('live WebSocket', () => {
     process.env.ADMIN_PASSWORD = 'admin-password';
 
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] })
+      .overrideProvider(DeliveryQueue)
+      .useValue(new NoDeliveryQueue())
       .overrideProvider(CleanupQueue)
       .useValue({})
       .overrideProvider(LateOrderTimer)
