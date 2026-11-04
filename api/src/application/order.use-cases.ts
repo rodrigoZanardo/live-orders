@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { businessTimeZone } from '../env';
-import { businessDay } from '../domain/business-day';
+import { businessDay, isBusinessDay } from '../domain/business-day';
 import { AppError } from '../domain/errors';
 import { Order, type DeliveryAddress, type OrderItem } from '../domain/order';
 import type { OrderStatus } from '../domain/order-status';
@@ -44,7 +44,10 @@ export class ListOrdersUseCase {
   constructor(private readonly orders: OrderRepository) {}
 
   /** Orders of a business day (YYYY-MM-DD); today when omitted. */
-  execute(day?: string, now = new Date()): Promise<Order[]> {
+  async execute(day?: string, now = new Date()): Promise<Order[]> {
+    if (day !== undefined && !isBusinessDay(day)) {
+      throw new AppError('INVALID_INPUT', { details: 'date must be a real day as YYYY-MM-DD' });
+    }
     return this.orders.findByDay(day ?? businessDay(now, businessTimeZone()));
   }
 }

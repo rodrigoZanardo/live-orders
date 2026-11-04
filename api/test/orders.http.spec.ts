@@ -145,6 +145,14 @@ describeWithDatabase('orders API over HTTP', () => {
     expect(response.body[0].order.id).toBe(second.order.id);
   });
 
+  it('refuses an impossible date with INVALID_INPUT', async () => {
+    const response = await http()
+      .get('/orders?date=2026-13-45')
+      .set('Authorization', `Bearer ${viewerToken}`);
+    expect(response.status).toBe(400);
+    expect(response.body.code).toBe('INVALID_INPUT');
+  });
+
   it('answers health without a token', async () => {
     expect((await http().get('/health')).body).toEqual({ status: 'ok' });
   });
