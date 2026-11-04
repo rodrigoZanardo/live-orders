@@ -34,7 +34,7 @@ export class PrismaUserRepository extends UserRepository {
     }
   }
 
-  async recordFailedLogin(userId: string): Promise<number> {
+  async recordLoginAttempt(userId: string): Promise<number> {
     const row = await this.db.user.update({
       where: { id: userId },
       data: { failedLogins: { increment: 1 } },

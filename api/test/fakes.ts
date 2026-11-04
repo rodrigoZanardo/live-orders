@@ -26,7 +26,7 @@ export class InMemoryUserRepository extends UserRepository {
     this.users.set(user.id, user);
   }
 
-  async recordFailedLogin(userId: string): Promise<number> {
+  async recordLoginAttempt(userId: string): Promise<number> {
     const user = this.get(userId);
     this.replace(user, { failedLogins: user.failedLogins + 1 });
     return user.failedLogins + 1;

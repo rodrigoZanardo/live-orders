@@ -1,11 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { AppError } from '../domain/errors';
-import { User, type Role } from '../domain/user';
+import { LOGIN_RULES, User, type Role } from '../domain/user';
 import { PasswordHasher, TokenService, UserRepository, type Actor } from './auth.ports';
 
 @Injectable()
 export class LoginUseCase {
+  private dummy?: Promise<string>;
+
   constructor(
     private readonly users: UserRepository,
     private readonly hasher: PasswordHasher,
@@ -19,6 +21,8 @@ export class LoginUseCase {
   ): Promise<{ token: string; user: Actor }> {
     const user = await this.users.findByEmail(User.normalizeEmail(email));
     if (!user) {
+      // same scrypt cost as a known email, so response time does not reveal which emails exist
+      await this.hasher.verify(password, await this.dummyHash());
       throw new AppError('INVALID_CREDENTIALS');
     }
 
@@ -28,20 +32,27 @@ export class LoginUseCase {
       throw new AppError('TOO_MANY_ATTEMPTS', { minutes });
     }
 
+    // counted before checking, atomically: parallel guesses cannot get more than maxFailures checks
+    const attempts = await this.users.recordLoginAttempt(user.id);
+    const lockUntil = User.lockAfterFailure(attempts, now);
+    if (attempts > LOGIN_RULES.maxFailures) {
+      if (lockUntil) await this.users.lock(user.id, lockUntil);
+      throw new AppError('TOO_MANY_ATTEMPTS', { minutes: LOGIN_RULES.lockMinutes });
+    }
+
     if (!(await this.hasher.verify(password, user.passwordHash))) {
-      const failures = await this.users.recordFailedLogin(user.id);
-      const lockUntil = User.lockAfterFailure(failures, now);
-      if (lockUntil) {
-        await this.users.lock(user.id, lockUntil);
-      }
+      if (lockUntil) await this.users.lock(user.id, lockUntil);
       throw new AppError('INVALID_CREDENTIALS');
     }
 
-    if (user.failedLogins > 0 || user.lockedUntil) {
-      await this.users.clearFailedLogins(user.id);
-    }
+    await this.users.clearFailedLogins(user.id);
     const actor: Actor = { id: user.id, email: user.email, role: user.role };
     return { token: await this.tokens.issue(actor), user: actor };
+  }
+
+  private dummyHash(): Promise<string> {
+    this.dummy ??= this.hasher.hash(randomUUID());
+    return this.dummy;
   }
 }
 

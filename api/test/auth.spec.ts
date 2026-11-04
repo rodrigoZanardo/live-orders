@@ -97,6 +97,28 @@ describe('LoginUseCase', () => {
     ).resolves.toBeDefined();
   });
 
+  it('hashes once for an unknown email, so timing does not reveal it', async () => {
+    const hasher = new FakePasswordHasher();
+    const verify = jest.spyOn(hasher, 'verify');
+    const unknown = new LoginUseCase(users, hasher, new FakeTokenService());
+    await codeOf(unknown.execute('nobody@example.com', 'whatever', now));
+    expect(verify).toHaveBeenCalledTimes(1);
+  });
+
+  it('allows at most 5 password checks among 20 parallel wrong logins, then locks', async () => {
+    const hasher = new FakePasswordHasher();
+    const verify = jest.spyOn(hasher, 'verify').mockImplementation(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      return false;
+    });
+    const parallel = new LoginUseCase(users, hasher, new FakeTokenService());
+    await Promise.all(
+      Array.from({ length: 20 }, () => codeOf(parallel.execute('staff@example.com', 'wrong', now))),
+    );
+    expect(verify.mock.calls.length).toBeLessThanOrEqual(5);
+    expect((await users.findByEmail('staff@example.com'))?.lockMinutesLeft(now)).toBeGreaterThan(0);
+  });
+
   it('clears earlier failures after a successful sign-in', async () => {
     for (let attempt = 0; attempt < 4; attempt++) {
       await codeOf(login.execute('staff@example.com', 'wrong', now));

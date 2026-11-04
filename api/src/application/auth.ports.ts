@@ -6,8 +6,8 @@ export abstract class UserRepository {
   abstract findAll(): Promise<User[]>;
   /** Throws EMAIL_TAKEN when the email already exists. */
   abstract create(user: User): Promise<void>;
-  /** Adds one failed sign-in atomically and returns the new count, so parallel attempts are all counted. */
-  abstract recordFailedLogin(userId: string): Promise<number>;
+  /** Counts one sign-in attempt atomically and returns the new count, so parallel attempts are all counted. */
+  abstract recordLoginAttempt(userId: string): Promise<number>;
   /** Locks the account until the given time and resets the failure count. */
   abstract lock(userId: string, until: Date): Promise<void>;
   /** Clears the failure count and any lock after a successful sign-in. */
