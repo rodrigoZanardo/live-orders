@@ -1,0 +1,57 @@
+# Render Blueprint: New > Blueprint in the Render dashboard, pick this repository (see docs/DEPLOY.md).
+# Free plan: public web services, one Key Value (Redis-compatible, 25 MB, no persistence).
+# Values marked sync: false are set once in the dashboard or through the Render API.
+services:
+  - type: keyvalue
+    name: live-orders-redis
+    plan: free
+    # only the API connects; Render's internal network
+    ipAllowList: []
+
+  - type: web
+    name: live-orders-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./api/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      # the shared free Postgres with ?schema=live_orders at the end (Prisma creates the schema)
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        fromService: { type: keyvalue, name: live-orders-redis, property: connectionString }
+      - key: JWT_SECRET
+        generateValue: true
+      - key: WEBHOOK_INCOMING_SECRET
+        generateValue: true
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: DEMO_EMAIL
+        value: demo@example.com
+      - key: DEMO_PASSWORD
+        sync: false
+      - key: LATE_AFTER_MINUTES
+        value: '10'
+      # the web service's public https URL (Render may add a suffix: read it from the API, docs/HANDOFF.md)
+      - key: WEB_ORIGIN
+        sync: false
+
+  - type: web
+    name: live-orders-web
+    runtime: docker
+    plan: free
+    dockerfilePath: ./web/Dockerfile
+    dockerContext: .
+    envVars:
+      # the API's public https URL, used by the server and by the browser (WebSocket + catch-up)
+      - key: API_URL
+        sync: false
+      - key: PUBLIC_API_URL
+        sync: false
+      - key: DEMO_EMAIL
+        value: demo@example.com
+      - key: DEMO_PASSWORD
+        sync: false
