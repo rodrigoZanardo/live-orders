@@ -98,6 +98,14 @@ export class OrderController {
 export class EventController {
   constructor(private readonly listEvents: ListEventsUseCase) {}
 
+  @Get('last')
+  @ApiOperation({ summary: 'The newest event seq (0 when there are none)' })
+  @ApiResponse({ status: 200, schema: { example: { lastSeq: 42 } } })
+  @ApiErrorResponse(401, 'Missing or expired token')
+  async last(): Promise<{ lastSeq: number }> {
+    return { lastSeq: await this.listEvents.lastSeq() };
+  }
+
   @Get()
   @ApiOperation({ summary: 'Catch-up: events after a sequence number, oldest first, at most 500' })
   @ApiResponse({ status: 200, type: [EventWithOrderResponse] })

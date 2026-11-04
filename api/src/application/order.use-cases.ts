@@ -98,6 +98,11 @@ export class MoveOrderUseCase {
 export class ListEventsUseCase {
   constructor(private readonly orders: OrderRepository) {}
 
+  /** The newest seq; a board reads it before loading orders, so no event falls between the two. */
+  lastSeq(): Promise<number> {
+    return this.orders.lastSeq();
+  }
+
   /** Catch-up: events after `seq`, oldest first, each with its order's current state. */
   async execute(after: number): Promise<EventWithOrder[]> {
     const events = await this.orders.findEventsAfter(after, MAX_EVENTS_PER_PAGE);

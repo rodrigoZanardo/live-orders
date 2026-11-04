@@ -124,6 +124,7 @@ All routes need a JWT (HS256 is enough here, one service; secret from env) excep
 | POST | `/orders` | staff, admin | Create a counter order |
 | POST | `/orders/:id/status` | staff, admin | Body `{ to, version }`. Moves the status |
 | GET | `/events?after=<seq>` | any | Events after a sequence number, at most 500 (catch-up) |
+| GET | `/events/last` | any | `{ lastSeq }`; the board reads it before loading orders, so no event falls between the two |
 | GET | `/address/:cep` | staff, admin | ViaCEP lookup; `found: false` when unknown or unavailable |
 | POST | `/webhooks/orders` | public, signed | Incoming orders from the delivery platform |
 | GET/POST/DELETE | `/webhook-subscriptions` | admin | Manage outgoing webhooks |

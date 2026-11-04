@@ -152,6 +152,9 @@ describeWithDatabase('orders API over HTTP', () => {
     expect(response.status).toBe(200);
     expect(response.body.map((event: { seq: number }) => event.seq)).toEqual([second.seq]);
     expect(response.body[0].order.id).toBe(second.order.id);
+
+    const last = await http().get('/events/last').set('Authorization', `Bearer ${viewerToken}`);
+    expect(last.body).toEqual({ lastSeq: second.seq });
   });
 
   it('refuses an impossible date with INVALID_INPUT', async () => {
