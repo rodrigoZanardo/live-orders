@@ -58,7 +58,13 @@ export class StockClient extends StockAvailability {
     for (const product of body) {
       if (typeof product !== 'object' || product === null) continue;
       const sku = 'sku' in product ? product.sku : undefined;
-      const quantity = 'quantity' in product ? product.quantity : undefined;
+      // `available` leaves out what other orders reserved; older stock versions only send `quantity`
+      const quantity =
+        'available' in product && typeof product.available === 'number'
+          ? product.available
+          : 'quantity' in product
+            ? product.quantity
+            : undefined;
       if (typeof sku === 'string' && typeof quantity === 'number' && wanted.has(sku)) {
         found.set(sku, quantity);
       }

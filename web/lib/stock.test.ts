@@ -45,6 +45,23 @@ describe('listStockProducts', () => {
     );
   });
 
+  it('uses available (stock minus reservations) when the stock sends it', async () => {
+    fetchMock.mockImplementation((url) =>
+      Promise.resolve(
+        String(url).endsWith('/auth/login')
+          ? Response.json({ accessToken: 'service-token' })
+          : Response.json([
+              { sku: 'KB-001', name: 'Keyboard', quantity: 4, available: 1 },
+              { sku: 'MS-002', name: 'Mouse', quantity: 2, available: 0 },
+            ]),
+      ),
+    );
+    await expect(listStockProducts(true)).resolves.toStrictEqual([
+      { sku: 'KB-001', name: 'Keyboard', inStock: true, quantity: 1 },
+      { sku: 'MS-002', name: 'Mouse', inStock: false, quantity: 0 },
+    ]);
+  });
+
   it('returns availability only, never a quantity, for anonymous visitors', async () => {
     const result = await listStockProducts(false);
     expect(result).toStrictEqual([

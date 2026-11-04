@@ -74,7 +74,10 @@ export async function listStockProducts(exact: boolean): Promise<ShopProduct[]> 
   const products = body.filter(isStockProduct);
   if (products.length !== body.length)
     throw new Error('Stock service returned a malformed product.');
-  return products.map(({ sku, name, quantity }) =>
-    exact ? { sku, name, inStock: quantity > 0, quantity } : { sku, name, inStock: quantity > 0 },
-  );
+  return products.map(({ sku, name, quantity, available }) => {
+    const left = typeof available === 'number' ? available : quantity;
+    return exact
+      ? { sku, name, inStock: left > 0, quantity: left }
+      : { sku, name, inStock: left > 0 };
+  });
 }

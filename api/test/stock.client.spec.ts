@@ -58,6 +58,13 @@ describe('StockClient', () => {
     ]);
   });
 
+  it('counts available (stock minus reservations) when the stock sends it', async () => {
+    fetchMock
+      .mockResolvedValueOnce(signedIn())
+      .mockResolvedValueOnce(Response.json([{ sku: 'BRG-01', quantity: 7, available: 3 }]));
+    expect([...(await client().available(['BRG-01']))]).toEqual([['BRG-01', 3]]);
+  });
+
   it('asks nothing when there are no SKUs', async () => {
     expect((await client().available([])).size).toBe(0);
     expect(fetchMock).not.toHaveBeenCalled();

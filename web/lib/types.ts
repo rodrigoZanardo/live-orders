@@ -83,7 +83,8 @@ export const NEXT_MOVES: Record<OrderStatus, readonly OrderStatus[]> = {
 };
 
 /** A product as the stock service lists it (GET /products of services/stock). */
-export type StockProduct = { sku: string; name: string; quantity: number };
+/** `available` = quantity minus what open orders reserved; absent on older Stock Manager versions. */
+export type StockProduct = { sku: string; name: string; quantity: number; available?: number };
 
 /** What the customer screen gets: the quantity only for staff and admin, otherwise the key is absent. */
 export type ShopProduct = { sku: string; name: string; inStock: boolean; quantity?: number };
