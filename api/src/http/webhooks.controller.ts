@@ -41,7 +41,7 @@ import { verifyWebhook } from '../domain/webhook-signature';
 import { ORDER_RULES } from '../domain/order';
 import { requiredEnv } from '../env';
 import { ApiErrorResponse } from './api-error';
-import { Public, Roles } from './auth.guard';
+import { Public } from './auth.guard';
 import { OrderItemDto, OrderResponse, toOrderResponse } from './order.dto';
 
 class PlatformDeliveryDto {
@@ -145,14 +145,13 @@ export class IncomingWebhookController {
 export class AddressController {
   constructor(private readonly addresses: AddressLookup) {}
 
-  @Roles('STAFF', 'ADMIN')
+  // public: the sign-up form fills the address before there is an account
+  @Public()
   @Get(':cep')
   @HttpCode(200)
   @ApiOperation({ summary: 'Look up a Brazilian CEP on ViaCEP (3 s timeout)' })
   @ApiResponse({ status: 200, type: AddressResponse })
   @ApiErrorResponse(400, 'CEP is not 8 digits')
-  @ApiErrorResponse(401, 'Missing or expired token')
-  @ApiErrorResponse(403, 'Viewers cannot look up addresses')
   lookup(@Param('cep') cep: string): Promise<AddressResponse> {
     if (!/^\d{5}-?\d{3}$/.test(cep)) {
       throw new AppError('CEP_INVALID');

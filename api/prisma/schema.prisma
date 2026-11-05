@@ -11,16 +11,27 @@ enum Role {
   ADMIN
   STAFF
   VIEWER
+  CUSTOMER
 }
 
 model User {
-  id           String    @id @db.Uuid
-  email        String    @unique
-  passwordHash String
-  role         Role
-  failedLogins Int       @default(0)
-  lockedUntil  DateTime?
-  createdAt    DateTime  @default(now())
+  id                String    @id @db.Uuid
+  email             String    @unique
+  passwordHash      String
+  role              Role
+  failedLogins      Int       @default(0)
+  lockedUntil       DateTime?
+  createdAt         DateTime  @default(now())
+  /// customer profile, set only for CUSTOMER accounts
+  name              String?
+  addressCep        String?
+  addressStreet     String?
+  addressNumber     String?
+  addressComplement String?
+  addressDistrict   String?
+  addressCity       String?
+  addressState      String?
+  orders            Order[]
 }
 
 enum OrderStatus {
@@ -43,7 +54,7 @@ enum EventType {
 }
 
 model Order {
-  id               String       @id @db.Uuid
+  id               String           @id @db.Uuid
   /// business day (YYYY-MM-DD in BUSINESS_TIME_ZONE) the order belongs to
   day              String
   number           Int
@@ -54,6 +65,9 @@ model Order {
   statusChangedAt  DateTime
   lateSince        DateTime?
   externalId       String?
+  /// the CUSTOMER account that placed it; null for staff and platform orders
+  customerId       String?          @db.Uuid
+  customer         User?            @relation(fields: [customerId], references: [id], onDelete: SetNull)
   deliveryCep      String?
   deliveryStreet   String?
   deliveryNumber   String?
@@ -68,6 +82,7 @@ model Order {
   @@unique([day, number])
   @@unique([channel, externalId])
   @@index([createdAt])
+  @@index([customerId])
 }
 
 model OrderItem {

@@ -1,7 +1,16 @@
 import { AppError } from './errors';
+import { ORDER_RULES, validDelivery, type DeliveryAddress } from './order';
 
-export const ROLES = ['ADMIN', 'STAFF', 'VIEWER'] as const;
+export const ROLES = ['ADMIN', 'STAFF', 'VIEWER', 'CUSTOMER'] as const;
 export type Role = (typeof ROLES)[number];
+/** Everyone but customers: they read the board, the orders of the day and the live feed. */
+export const STAFF_ROLES = ['ADMIN', 'STAFF', 'VIEWER'] as const satisfies readonly Role[];
+
+/** A customer's own address; the complement is kept apart so the form can show it again. */
+export type CustomerAddress = DeliveryAddress & { complement: string | null };
+
+/** Name and saved address of a CUSTOMER; their orders always use these, never what a request sends. */
+export type CustomerProfile = { name: string; address: CustomerAddress };
 
 export function isRole(value: string): value is Role {
   return ROLES.some((role) => role === value);
@@ -20,17 +29,25 @@ export type UserProps = {
   role: Role;
   failedLogins: number;
   lockedUntil: Date | null;
+  profile: CustomerProfile | null;
 };
 
 export class User {
   private constructor(private readonly props: UserProps) {}
 
-  static create(input: { id: string; email: string; passwordHash: string; role: Role }): User {
+  static create(input: {
+    id: string;
+    email: string;
+    passwordHash: string;
+    role: Role;
+    profile?: CustomerProfile | null;
+  }): User {
     const email = User.normalizeEmail(input.email);
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       throw new AppError('EMAIL_INVALID');
     }
-    return new User({ ...input, email, failedLogins: 0, lockedUntil: null });
+    const profile = input.profile ? validProfile(input.profile) : null;
+    return new User({ ...input, email, profile, failedLogins: 0, lockedUntil: null });
   }
 
   static restore(props: UserProps): User {
@@ -80,6 +97,10 @@ export class User {
     return this.props.lockedUntil;
   }
 
+  get profile(): CustomerProfile | null {
+    return this.props.profile;
+  }
+
   /** Whole minutes left in the lock (at least 1), or 0 when the account is not locked. */
   lockMinutesLeft(now: Date): number {
     const lockedUntil = this.props.lockedUntil;
@@ -88,4 +109,16 @@ export class User {
     }
     return Math.max(1, Math.ceil((lockedUntil.getTime() - now.getTime()) / 60_000));
   }
+}
+
+function validProfile(input: CustomerProfile): CustomerProfile {
+  const name = input.name.trim();
+  if (name.length === 0 || name.length > ORDER_RULES.maxCustomerName) {
+    throw new AppError('CUSTOMER_NAME_INVALID', { max: ORDER_RULES.maxCustomerName });
+  }
+  const address = validDelivery(input.address);
+  if (!address.street || !address.number || !address.city || !/^[A-Z]{2}$/.test(address.state)) {
+    throw new AppError('ADDRESS_INCOMPLETE');
+  }
+  return { name, address: { ...address, complement: input.address.complement?.trim() || null } };
 }

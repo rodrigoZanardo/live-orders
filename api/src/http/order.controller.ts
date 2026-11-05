@@ -2,17 +2,23 @@ import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Query } fr
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Actor } from '../application/auth.ports';
 import {
+  CancelMyOrderUseCase,
   CreateOrderUseCase,
+  ListMyOrdersUseCase,
+  PlaceCustomerOrderUseCase,
   GetOrderUseCase,
   ListEventsUseCase,
   ListOrdersUseCase,
   MoveOrderUseCase,
 } from '../application/order.use-cases';
 import { AppError } from '../domain/errors';
+import { STAFF_ROLES } from '../domain/user';
 import { ApiErrorResponse } from './api-error';
 import { CurrentUser, Public, Roles } from './auth.guard';
 import {
+  CancelMyOrderDto,
   CreateOrderDto,
+  CustomerOrderDto,
   EventsQuery,
   EventWithOrderResponse,
   ListOrdersQuery,
@@ -29,6 +35,7 @@ const orderId = new ParseUUIDPipe({ exceptionFactory: () => new AppError('ORDER_
 
 @ApiTags('orders')
 @ApiBearerAuth()
+@Roles(...STAFF_ROLES)
 @Controller('orders')
 export class OrderController {
   constructor(
@@ -43,6 +50,7 @@ export class OrderController {
   @ApiResponse({ status: 200, type: [OrderResponse] })
   @ApiErrorResponse(400, 'Invalid date')
   @ApiErrorResponse(401, 'Missing or expired token')
+  @ApiErrorResponse(403, 'Customers only see their own orders')
   async list(@Query() query: ListOrdersQuery): Promise<OrderResponse[]> {
     return (await this.listOrders.execute(query.date)).map(toOrderResponse);
   }
@@ -51,6 +59,7 @@ export class OrderController {
   @ApiOperation({ summary: 'One order with its event timeline' })
   @ApiResponse({ status: 200, type: OrderDetailResponse })
   @ApiErrorResponse(401, 'Missing or expired token')
+  @ApiErrorResponse(403, 'Customers only see their own orders')
   @ApiErrorResponse(404, 'Order not found')
   async get(@Param('id', orderId) id: string): Promise<OrderDetailResponse> {
     const { order, events } = await this.getOrder.execute(id);
@@ -92,8 +101,62 @@ export class OrderController {
   }
 }
 
+/** The signed-in customer's own orders; never anyone else's. */
+@ApiTags('my orders')
+@ApiBearerAuth()
+@Roles('CUSTOMER')
+@Controller('my/orders')
+export class MyOrdersController {
+  constructor(
+    private readonly listMine: ListMyOrdersUseCase,
+    private readonly place: PlaceCustomerOrderUseCase,
+    private readonly cancel: CancelMyOrderUseCase,
+  ) {}
+
+  @Get()
+  @ApiOperation({ summary: 'The orders of the signed-in customer, newest first (latest 100)' })
+  @ApiResponse({ status: 200, type: [OrderResponse] })
+  @ApiErrorResponse(401, 'Missing or expired token')
+  @ApiErrorResponse(403, 'Not a customer')
+  async list(@CurrentUser() actor: Actor): Promise<OrderResponse[]> {
+    return (await this.listMine.execute(actor)).map(toOrderResponse);
+  }
+
+  @Post()
+  @ApiOperation({ summary: 'Place a delivery order to the saved address, under the account name' })
+  @ApiResponse({ status: 201, type: OrderResponse })
+  @ApiErrorResponse(400, 'Invalid items, SKU not in stock, not enough stock, or invalid input')
+  @ApiErrorResponse(401, 'Missing or expired token')
+  @ApiErrorResponse(403, 'Not a customer')
+  @ApiErrorResponse(503, 'Stock unavailable')
+  async create(
+    @Body() body: CustomerOrderDto,
+    @CurrentUser() actor: Actor,
+  ): Promise<OrderResponse> {
+    return toOrderResponse((await this.place.execute(body.items, actor)).order);
+  }
+
+  @Post(':id/cancel')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Cancel an own order while it is RECEIVED' })
+  @ApiResponse({ status: 200, type: OrderResponse })
+  @ApiErrorResponse(400, 'The order is no longer RECEIVED, or invalid input')
+  @ApiErrorResponse(401, 'Missing or expired token')
+  @ApiErrorResponse(403, 'Not a customer')
+  @ApiErrorResponse(404, 'Order not found (or not yours)')
+  @ApiErrorResponse(409, 'The order changed first (old version)')
+  async cancelOrder(
+    @Param('id', orderId) id: string,
+    @Body() body: CancelMyOrderDto,
+    @CurrentUser() actor: Actor,
+  ): Promise<OrderResponse> {
+    return toOrderResponse((await this.cancel.execute({ id, version: body.version }, actor)).order);
+  }
+}
+
 @ApiTags('events')
 @ApiBearerAuth()
+@Roles(...STAFF_ROLES)
 @Controller('events')
 export class EventController {
   constructor(private readonly listEvents: ListEventsUseCase) {}
@@ -102,6 +165,7 @@ export class EventController {
   @ApiOperation({ summary: 'The newest event seq (0 when there are none)' })
   @ApiResponse({ status: 200, schema: { example: { lastSeq: 42 } } })
   @ApiErrorResponse(401, 'Missing or expired token')
+  @ApiErrorResponse(403, 'Customers cannot read the event log')
   async last(): Promise<{ lastSeq: number }> {
     return { lastSeq: await this.listEvents.lastSeq() };
   }
@@ -111,6 +175,7 @@ export class EventController {
   @ApiResponse({ status: 200, type: [EventWithOrderResponse] })
   @ApiErrorResponse(400, 'Invalid sequence number')
   @ApiErrorResponse(401, 'Missing or expired token')
+  @ApiErrorResponse(403, 'Customers cannot read the event log')
   async list(@Query() query: EventsQuery): Promise<EventWithOrderResponse[]> {
     return (await this.listEvents.execute(query.after ?? 0)).map(toEventWithOrderResponse);
   }

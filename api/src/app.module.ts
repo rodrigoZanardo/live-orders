@@ -7,11 +7,15 @@ import {
   EnsureUserUseCase,
   ListUsersUseCase,
   LoginUseCase,
+  RegisterCustomerUseCase,
 } from './application/auth.use-cases';
 import { OrderRepository } from './application/order-repository';
 import {
+  CancelMyOrderUseCase,
   CreateOrderUseCase,
   GetOrderUseCase,
+  ListMyOrdersUseCase,
+  PlaceCustomerOrderUseCase,
   ListEventsUseCase,
   ListOrdersUseCase,
   MoveOrderUseCase,
@@ -21,7 +25,12 @@ import { LateOrderTimer, MarkLateUseCase } from './application/late-orders';
 import { BullLateOrderTimer } from './infra/late-orders.queue';
 import { AppErrorFilter } from './http/app-error.filter';
 import { AuthController, UsersController } from './http/auth.controller';
-import { EventController, HealthController, OrderController } from './http/order.controller';
+import {
+  EventController,
+  HealthController,
+  MyOrdersController,
+  OrderController,
+} from './http/order.controller';
 import { AuthGuard } from './http/auth.guard';
 import { JwtTokenService, ScryptPasswordHasher } from './infra/auth.services';
 import { PrismaOrderRepository } from './infra/prisma-order.repository';
@@ -72,6 +81,7 @@ import { AddressController, IncomingWebhookController } from './http/webhooks.co
     AuthController,
     UsersController,
     OrderController,
+    MyOrdersController,
     EventController,
     HealthController,
     IncomingWebhookController,
@@ -147,6 +157,7 @@ import { AddressController, IncomingWebhookController } from './http/webhooks.co
         new BullLateOrderTimer(requiredEnv('REDIS_URL'), lateAfterMs(), markLate),
     },
     LoginUseCase,
+    RegisterCustomerUseCase,
     CreateUserUseCase,
     ListUsersUseCase,
     EnsureUserUseCase,
@@ -155,6 +166,9 @@ import { AddressController, IncomingWebhookController } from './http/webhooks.co
     GetOrderUseCase,
     MoveOrderUseCase,
     ListEventsUseCase,
+    PlaceCustomerOrderUseCase,
+    ListMyOrdersUseCase,
+    CancelMyOrderUseCase,
   ],
 })
 export class AppModule implements OnApplicationBootstrap {

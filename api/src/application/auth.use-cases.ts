@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { AppError } from '../domain/errors';
-import { LOGIN_RULES, User, type Role } from '../domain/user';
+import { LOGIN_RULES, User, type CustomerProfile, type Role } from '../domain/user';
 import { PasswordHasher, TokenService, UserRepository, type Actor } from './auth.ports';
 
 @Injectable()
@@ -73,6 +73,34 @@ export class CreateUserUseCase {
     });
     await this.users.create(user);
     return user;
+  }
+}
+
+/** Public sign-up: always a CUSTOMER with a saved delivery address, signed in right away. */
+@Injectable()
+export class RegisterCustomerUseCase {
+  constructor(
+    private readonly users: UserRepository,
+    private readonly hasher: PasswordHasher,
+    private readonly tokens: TokenService,
+  ) {}
+
+  async execute(input: {
+    email: string;
+    password: string;
+    profile: CustomerProfile;
+  }): Promise<{ token: string; user: Actor }> {
+    User.assertPassword(input.password);
+    const user = User.create({
+      id: randomUUID(),
+      email: input.email,
+      passwordHash: await this.hasher.hash(input.password),
+      role: 'CUSTOMER',
+      profile: input.profile,
+    });
+    await this.users.create(user);
+    const actor: Actor = { id: user.id, email: user.email, role: user.role };
+    return { token: await this.tokens.issue(actor), user: actor };
   }
 }
 

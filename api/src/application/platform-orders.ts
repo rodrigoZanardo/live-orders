@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { businessDay } from '../domain/business-day';
-import { Order, type DeliveryAddress, type OrderItem } from '../domain/order';
+import { numberWithComplement, Order, type DeliveryAddress, type OrderItem } from '../domain/order';
 import { AppError } from '../domain/errors';
 import { businessTimeZone } from '../env';
 import { AddressLookup } from './address-lookup';
@@ -84,10 +84,9 @@ export class ReceivePlatformOrderUseCase {
   }): Promise<DeliveryAddress> {
     const result = await this.addresses.lookup(input.cep);
     const found = result.found ? result.address : { street: '', district: '', city: '', state: '' };
-    const complement = input.complement?.trim();
     return {
       cep: input.cep,
-      number: complement ? `${input.number} - ${complement}` : input.number,
+      number: numberWithComplement(input.number, input.complement),
       ...found,
     };
   }

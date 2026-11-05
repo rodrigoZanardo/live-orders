@@ -1,7 +1,9 @@
 import { getFormatter, getTranslations } from 'next-intl/server';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { api, ApiError } from '@/lib/api';
+import { api, ApiError, currentRole } from '@/lib/api';
+import { pickingList, type PickLine } from '@/lib/picking';
+import { fetchStockProducts } from '@/lib/stock';
 import type { OrderDetail, OrderEvent } from '@/lib/types';
 
 async function load(id: string): Promise<OrderDetail> {
@@ -15,6 +17,18 @@ async function load(id: string): Promise<OrderDetail> {
 
 export default async function OrderPage({ params }: { params: Promise<{ id: string }> }) {
   const order = await load((await params).id);
+  const role = await currentRole();
+  // bin locations are fetched here, on the server, and only for staff; null = stock unreachable
+  const picking =
+    role === 'STAFF' || role === 'ADMIN'
+      ? await fetchStockProducts().then(
+          (products) => pickingList(order.items, products),
+          (error: unknown) => {
+            console.error(error);
+            return null;
+          },
+        )
+      : undefined;
   const t = await getTranslations('order');
   const status = await getTranslations('status');
   const board = await getTranslations('board');
@@ -81,6 +95,8 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
         )}
       </section>
 
+      {picking !== undefined && <PickingList lines={picking} />}
+
       <section className="space-y-3">
         <h2 className="font-display text-xl font-bold">{t('timeline')}</h2>
         <ol className="relative space-y-4 border-l-2 border-line pl-5">
@@ -107,5 +123,44 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
         </ol>
       </section>
     </div>
+  );
+}
+
+async function PickingList({ lines }: { lines: PickLine[] | null }) {
+  const t = await getTranslations('picking');
+  return (
+    <section className="space-y-3">
+      <h2 className="font-display text-xl font-bold">{t('title')}</h2>
+      {lines === null ? (
+        <p role="status" className="text-sm text-muted">
+          {t('unavailable')}
+        </p>
+      ) : (
+        <div className="panel overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="text-left text-muted">
+              <tr>
+                <th className="px-4 py-2 font-medium">{t('location')}</th>
+                <th className="px-4 py-2 font-medium">{t('sku')}</th>
+                <th className="px-4 py-2 font-medium">{t('item')}</th>
+                <th className="px-4 py-2 text-right font-medium">{t('quantity')}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line">
+              {lines.map((line, index) => (
+                <tr key={`${line.sku}-${index}`}>
+                  <td className="px-4 py-2 font-mono">{line.location ?? t('noLocation')}</td>
+                  <td className="px-4 py-2 font-mono text-xs">{line.sku}</td>
+                  <td className="px-4 py-2">{line.name}</td>
+                  <td className="px-4 py-2 text-right font-semibold tabular-nums">
+                    {line.quantity}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
   );
 }

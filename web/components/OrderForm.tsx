@@ -2,11 +2,12 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
-import { useState, useTransition } from 'react';
+import { useState } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { createOrder, lookupAddress } from '@/app/actions';
+import { createOrder } from '@/app/actions';
 import { Field, FormMessage, useAction } from './form';
+import { useAddressLookup } from './useAddressLookup';
 
 // Mirrors the domain limits so the form explains them early; the API is still the authority.
 const schema = z
@@ -60,8 +61,6 @@ export function OrderForm() {
   const v = useTranslations('order.validation');
   const { result, pending, run } = useAction();
   const [created, setCreated] = useState<number | null>(null);
-  const [cepMessage, setCepMessage] = useState<string | null>(null);
-  const [lookingUp, startLookup] = useTransition();
   const { register, control, handleSubmit, watch, setValue, getValues, reset, formState } =
     useForm<Values>({
       resolver: zodResolver(schema),
@@ -71,24 +70,12 @@ export function OrderForm() {
   const errors = formState.errors;
   const withDelivery = watch('withDelivery');
 
-  const findAddress = () =>
-    startLookup(async () => {
-      setCepMessage(null);
-      const cep = getValues('cep').trim();
-      if (!/^\d{5}-?\d{3}$/.test(cep)) {
-        setCepMessage(v('cep'));
-        return;
-      }
-      const found = await lookupAddress(cep);
-      if (found.found && found.address) {
-        setValue('street', found.address.street, { shouldValidate: true });
-        setValue('district', found.address.district);
-        setValue('city', found.address.city, { shouldValidate: true });
-        setValue('state', found.address.state, { shouldValidate: true });
-      } else {
-        setCepMessage(t('cepNotFound'));
-      }
-    });
+  const cepLookup = useAddressLookup((address) => {
+    setValue('street', address.street, { shouldValidate: true });
+    setValue('district', address.district);
+    setValue('city', address.city, { shouldValidate: true });
+    setValue('state', address.state, { shouldValidate: true });
+  });
 
   const submit = handleSubmit(async (values) => {
     setCreated(null);
@@ -179,7 +166,7 @@ export function OrderForm() {
             <Field
               label={t('cep')}
               error={errors.cep && v('cep')}
-              hint={cepMessage ?? undefined}
+              hint={cepLookup.message ?? undefined}
               className="sm:col-span-2"
             >
               {(props) => (
@@ -195,10 +182,10 @@ export function OrderForm() {
               <button
                 type="button"
                 className="btn-secondary"
-                onClick={findAddress}
-                disabled={lookingUp}
+                onClick={() => cepLookup.lookup(getValues('cep'))}
+                disabled={cepLookup.lookingUp}
               >
-                {lookingUp ? t('lookingUp') : t('lookup')}
+                {cepLookup.lookingUp ? t('lookingUp') : t('lookup')}
               </button>
             </div>
             <Field

@@ -3,10 +3,10 @@ import { randomUUID } from 'crypto';
 import { businessTimeZone } from '../env';
 import { businessDay, isBusinessDay } from '../domain/business-day';
 import { AppError } from '../domain/errors';
-import { Order, type DeliveryAddress, type OrderItem } from '../domain/order';
+import { numberWithComplement, Order, type DeliveryAddress, type OrderItem } from '../domain/order';
 import { assertInStock } from '../domain/stock-check';
 import type { OrderStatus } from '../domain/order-status';
-import type { Actor } from './auth.ports';
+import { UserRepository, type Actor } from './auth.ports';
 import { LateOrderTimer } from './late-orders';
 import { LiveEvents } from './live-events';
 import { OrderRepository, type OrderEvent } from './order-repository';
@@ -21,6 +21,7 @@ export type NewCounterOrder = {
   customerName: string;
   items: OrderItem[];
   delivery?: DeliveryAddress | null;
+  customerId?: string | null;
 };
 
 @Injectable()
@@ -122,5 +123,74 @@ export class ListEventsUseCase {
       const order = byId.get(event.orderId);
       return order ? [{ ...event, order }] : [];
     });
+  }
+}
+
+/** A CUSTOMER orders for delivery: name and address come from the account, never from the request. */
+@Injectable()
+export class PlaceCustomerOrderUseCase {
+  constructor(
+    private readonly users: UserRepository,
+    private readonly createOrder: CreateOrderUseCase,
+  ) {}
+
+  async execute(items: OrderItem[], actor: Actor, now = new Date()): Promise<EventWithOrder> {
+    const profile = (await this.users.findById(actor.id))?.profile;
+    if (!profile) {
+      throw new AppError('FORBIDDEN');
+    }
+    const { complement, ...address } = profile.address;
+    return this.createOrder.execute(
+      {
+        customerName: profile.name,
+        items,
+        delivery: { ...address, number: numberWithComplement(address.number, complement) },
+        customerId: actor.id,
+      },
+      actor,
+      now,
+    );
+  }
+}
+
+@Injectable()
+export class ListMyOrdersUseCase {
+  constructor(private readonly orders: OrderRepository) {}
+
+  execute(actor: Actor): Promise<Order[]> {
+    return this.orders.findByCustomer(actor.id);
+  }
+}
+
+/** A customer cancels their own order while it is RECEIVED; through the same move as staff, so stock is released. */
+@Injectable()
+export class CancelMyOrderUseCase {
+  constructor(
+    private readonly orders: OrderRepository,
+    private readonly moveOrder: MoveOrderUseCase,
+  ) {}
+
+  async execute(
+    input: { id: string; version: number },
+    actor: Actor,
+    now = new Date(),
+  ): Promise<EventWithOrder> {
+    const order = await this.orders.findById(input.id);
+    // someone else's order answers like a missing one, so ids of other customers reveal nothing
+    if (!order || order.customerId !== actor.id) {
+      throw new AppError('ORDER_NOT_FOUND');
+    }
+    if (!order.canBeCancelledBy(actor.id)) {
+      throw new AppError('STATUS_MOVE_INVALID', { from: order.status, to: 'CANCELLED' });
+    }
+    if (input.version !== order.version) {
+      throw new AppError('ORDER_CHANGED');
+    }
+    // the version checked here: if staff moved it meanwhile, the move fails with ORDER_CHANGED
+    return this.moveOrder.execute(
+      { id: order.id, to: 'CANCELLED', version: order.version },
+      actor,
+      now,
+    );
   }
 }

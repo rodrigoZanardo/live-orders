@@ -64,6 +64,9 @@ export abstract class OrderRepository {
   /** Orders of a business day, by number. */
   abstract findByDay(day: string): Promise<Order[]>;
 
+  /** Orders a CUSTOMER account placed, newest first. */
+  abstract findByCustomer(customerId: string): Promise<Order[]>;
+
   /** Events with `seq` greater than `after`, oldest first, at most `limit`. */
   abstract findEventsAfter(after: number, limit: number): Promise<OrderEvent[]>;
 

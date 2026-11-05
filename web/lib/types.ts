@@ -1,7 +1,14 @@
 // Shapes the API returns (see the Swagger at /docs). Shared by server code and client components.
 
-export const ROLES = ['ADMIN', 'STAFF', 'VIEWER'] as const;
+export const ROLES = ['ADMIN', 'STAFF', 'VIEWER', 'CUSTOMER'] as const;
 export type Role = (typeof ROLES)[number];
+/** Roles an admin can give; customers only come from the public sign-up. */
+export const STAFF_ROLES = ['ADMIN', 'STAFF', 'VIEWER'] as const;
+
+/** Where a role lands after sign-in: customers at the parts counter, everyone else at the board. */
+export function homeOf(role: string | undefined | null): string {
+  return role === 'CUSTOMER' ? '/cliente' : '/gerencia';
+}
 
 export const ORDER_STATUSES = ['RECEIVED', 'PREPARING', 'READY', 'DELIVERED', 'CANCELLED'] as const;
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
@@ -84,7 +91,14 @@ export const NEXT_MOVES: Record<OrderStatus, readonly OrderStatus[]> = {
 
 /** A product as the stock service lists it (GET /products of services/stock). */
 /** `available` = quantity minus what open orders reserved; absent on older Stock Manager versions. */
-export type StockProduct = { sku: string; name: string; quantity: number; available?: number };
+/** `location` = bin address in the warehouse (e.g. R01-B03-A04-P060-N1); staff only, never sent to customers. */
+export type StockProduct = {
+  sku: string;
+  name: string;
+  quantity: number;
+  available?: number;
+  location?: string | null;
+};
 
 /** What the customer screen gets: the quantity only for staff and admin, otherwise the key is absent. */
 export type ShopProduct = { sku: string; name: string; inStock: boolean; quantity?: number };

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState, type FormEvent } from 'react';
-import { createOrder } from '@/app/actions';
+import { createOrder, placeMyOrder } from '@/app/actions';
 import { filterProducts, maxQuantity, orderItems, setQuantity, type Cart } from '@/lib/catalog';
 import type { Role, ShopProduct } from '@/lib/types';
 import { Field, FormMessage, useAction } from './form';
@@ -11,7 +11,8 @@ import { Field, FormMessage, useAction } from './form';
 /**
  * Parts counter: search first, a dense parts list, and the order as a counter ticket. No prices (no payment).
  * Staff see exact quantities; everyone else sees availability only (the server never sends the number).
- * Anyone can fill the ticket; only staff can place the order, and the API checks every limit again.
+ * Anyone can fill the ticket; staff place it for a named customer, a signed-in customer for delivery to their
+ * saved address. The API checks every limit again.
  */
 export function CustomerCatalog({
   products,
@@ -28,12 +29,15 @@ export function CustomerCatalog({
   const [name, setName] = useState('');
   const [created, setCreated] = useState<number | null>(null);
 
-  const canOrder = role === 'STAFF' || role === 'ADMIN';
+  const isStaff = role === 'STAFF' || role === 'ADMIN';
+  const isCustomer = role === 'CUSTOMER';
+  const canOrder = isStaff || isCustomer;
   const shown = filterProducts(products, search);
   const items = orderItems(products, cart);
   const units = items.reduce((sum, item) => sum + item.quantity, 0);
   const nameLength = name.trim().length;
-  const disabled = !canOrder || pending || items.length === 0 || nameLength < 1 || nameLength > 80;
+  const nameMissing = isStaff && (nameLength < 1 || nameLength > 80);
+  const disabled = !canOrder || pending || items.length === 0 || nameMissing;
   const change = (product: ShopProduct, quantity: number) => {
     setCreated(null);
     setCart((current) => setQuantity(current, product, quantity));
@@ -44,7 +48,9 @@ export function CustomerCatalog({
     // Enter in the name field submits the form too; it must not bypass the disabled button
     if (disabled) return;
     setCreated(null);
-    const outcome = await run(() => createOrder({ customerName: name.trim(), items }));
+    const outcome = await run(() =>
+      isCustomer ? placeMyOrder(items) : createOrder({ customerName: name.trim(), items }),
+    );
     if (outcome?.number) {
       setCreated(outcome.number);
       setName('');
@@ -168,20 +174,24 @@ export function CustomerCatalog({
 
             {canOrder ? (
               <>
-                <Field
-                  label={t('yourName')}
-                  hint={nameLength > 80 ? undefined : v('customer')}
-                  error={nameLength > 80 ? v('customer') : undefined}
-                >
-                  {(props) => (
-                    <input
-                      {...props}
-                      value={name}
-                      onChange={(event) => setName(event.target.value)}
-                      autoComplete="off"
-                    />
-                  )}
-                </Field>
+                {isCustomer ? (
+                  <p className="text-sm text-muted">{t('deliveryTo')}</p>
+                ) : (
+                  <Field
+                    label={t('yourName')}
+                    hint={nameLength > 80 ? undefined : v('customer')}
+                    error={nameLength > 80 ? v('customer') : undefined}
+                  >
+                    {(props) => (
+                      <input
+                        {...props}
+                        value={name}
+                        onChange={(event) => setName(event.target.value)}
+                        autoComplete="off"
+                      />
+                    )}
+                  </Field>
+                )}
                 <FormMessage
                   result={result}
                   success={created ? t('created', { number: created }) : undefined}
@@ -198,7 +208,11 @@ export function CustomerCatalog({
               <p className="text-sm">
                 {role === null ? (
                   <>
-                    {t('signIn')}{' '}
+                    {t('signInOrRegister')}{' '}
+                    <Link href="/cadastro" className="font-semibold text-brand underline">
+                      {t('createAccount')}
+                    </Link>{' '}
+                    ·{' '}
                     <Link href="/login" className="font-semibold text-brand underline">
                       {t('signInLink')}
                     </Link>

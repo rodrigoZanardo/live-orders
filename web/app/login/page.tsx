@@ -1,4 +1,5 @@
 import { getTranslations } from 'next-intl/server';
+import Link from 'next/link';
 import { LocaleSwitcher } from '@/components/LocaleSwitcher';
 import { LoginForm } from '@/components/LoginForm';
 import { BrandMark } from '@/components/Shell';
@@ -23,6 +24,12 @@ export default async function LoginPage() {
           <h2 className="mb-4 text-lg font-semibold">{t('title')}</h2>
           <LoginForm demo={demo} />
         </div>
+        <p className="text-center text-sm">
+          {t('noAccount')}{' '}
+          <Link href="/cadastro" className="font-semibold text-brand underline">
+            {t('register')}
+          </Link>
+        </p>
         <div className="flex justify-center">
           <LocaleSwitcher />
         </div>

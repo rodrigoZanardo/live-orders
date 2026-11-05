@@ -8,7 +8,7 @@ import { DeliveryQueue } from '../src/application/outgoing-webhooks';
 import { LateOrderTimer } from '../src/application/late-orders';
 import { LiveTickets } from '../src/application/live-tickets';
 import { AppError } from '../src/domain/errors';
-import { User } from '../src/domain/user';
+import { isRole, User, type CustomerProfile } from '../src/domain/user';
 
 /** In-memory users for unit and HTTP tests. */
 export class InMemoryUserRepository extends UserRepository {
@@ -16,6 +16,10 @@ export class InMemoryUserRepository extends UserRepository {
 
   async findByEmail(email: string): Promise<User | null> {
     return [...this.users.values()].find((user) => user.email === email) ?? null;
+  }
+
+  async findById(id: string): Promise<User | null> {
+    return this.users.get(id) ?? null;
   }
 
   async findAll(): Promise<User[]> {
@@ -58,6 +62,7 @@ export class InMemoryUserRepository extends UserRepository {
         passwordHash: user.passwordHash,
         role: user.role,
         lockedUntil: user.lockedUntil,
+        profile: user.profile,
         ...changes,
       }),
     );
@@ -92,7 +97,8 @@ export class FakeTokenService extends TokenService {
         'role' in parsed &&
         typeof parsed.id === 'string' &&
         typeof parsed.email === 'string' &&
-        (parsed.role === 'ADMIN' || parsed.role === 'STAFF' || parsed.role === 'VIEWER')
+        typeof parsed.role === 'string' &&
+        isRole(parsed.role)
       ) {
         return { id: parsed.id, email: parsed.email, role: parsed.role };
       }
@@ -138,3 +144,17 @@ export class InMemoryLiveTickets extends LiveTickets {
     return token;
   }
 }
+
+/** A valid sign-up profile, written the way a person types it (spaces, lower-case state). */
+export const CUSTOMER_PROFILE: CustomerProfile = {
+  name: ' Ana Souza ',
+  address: {
+    cep: '01001-000',
+    street: 'Praça da Sé',
+    number: '100',
+    complement: ' apto 12 ',
+    district: 'Sé',
+    city: 'São Paulo',
+    state: 'sp',
+  },
+};

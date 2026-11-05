@@ -13,7 +13,8 @@ function isStockProduct(value: unknown): value is StockProduct {
     'name' in value &&
     typeof value.name === 'string' &&
     'quantity' in value &&
-    typeof value.quantity === 'number'
+    typeof value.quantity === 'number' &&
+    (!('location' in value) || value.location === null || typeof value.location === 'string')
   );
 }
 
@@ -50,9 +51,9 @@ function getProducts(baseUrl: string, bearer: string): Promise<Response> {
 /**
  * Products from the stock service, signed in as its VIEWER user (server only).
  * The credentials have no NEXT_PUBLIC_ prefix, so they never reach the browser.
- * Without `exact` the quantity is dropped here, so it never reaches an anonymous page.
+ * Raw rows, bin location included: only staff pages may pass them on.
  */
-export async function listStockProducts(exact: boolean): Promise<ShopProduct[]> {
+export async function fetchStockProducts(): Promise<StockProduct[]> {
   const baseUrl = process.env.STOCK_API_URL?.replace(/\/$/, '');
   const email = process.env.STOCK_API_EMAIL;
   const password = process.env.STOCK_API_PASSWORD;
@@ -75,7 +76,12 @@ export async function listStockProducts(exact: boolean): Promise<ShopProduct[]> 
   const products = body.filter(isStockProduct);
   if (products.length !== body.length)
     throw new Error('Stock service returned a malformed product.');
-  return products.map(({ sku, name, quantity, available }) => {
+  return products;
+}
+
+/** The catalog view. Without `exact` the quantity is dropped here, so it never reaches an anonymous page; the location never leaves. */
+export async function listStockProducts(exact: boolean): Promise<ShopProduct[]> {
+  return (await fetchStockProducts()).map(({ sku, name, quantity, available }) => {
     const left = typeof available === 'number' ? available : quantity;
     return exact
       ? { sku, name, inStock: left > 0, quantity: left }

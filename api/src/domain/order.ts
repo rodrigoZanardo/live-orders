@@ -41,6 +41,8 @@ export type OrderProps = {
   lateSince: Date | null;
   /** Id from the delivery platform, unique with `channel`. */
   externalId: string | null;
+  /** The CUSTOMER account that placed the order; null for staff and platform orders. */
+  customerId: string | null;
   createdAt: Date;
 };
 
@@ -52,6 +54,7 @@ export type CreateOrderInput = {
   items: OrderItem[];
   delivery?: DeliveryAddress | null;
   externalId?: string | null;
+  customerId?: string | null;
   now: Date;
 };
 
@@ -85,6 +88,7 @@ export class Order {
       statusChangedAt: input.now,
       lateSince: null,
       externalId,
+      customerId: input.customerId ?? null,
       createdAt: input.now,
     });
   }
@@ -141,8 +145,17 @@ export class Order {
     return this.props.externalId;
   }
 
+  get customerId(): string | null {
+    return this.props.customerId;
+  }
+
   get createdAt(): Date {
     return this.props.createdAt;
+  }
+
+  /** A customer may cancel only an order of their own that nobody started preparing yet. */
+  canBeCancelledBy(customerId: string): boolean {
+    return this.props.customerId === customerId && this.props.status === 'RECEIVED';
   }
 
   /**
@@ -205,7 +218,7 @@ function validItems(input: OrderItem[]): OrderItem[] {
   return items;
 }
 
-function validDelivery(input: DeliveryAddress): DeliveryAddress {
+export function validDelivery(input: DeliveryAddress): DeliveryAddress {
   const cep = input.cep.trim();
   if (!/^\d{5}-?\d{3}$/.test(cep)) {
     throw new AppError('CEP_INVALID');
@@ -219,4 +232,13 @@ function validDelivery(input: DeliveryAddress): DeliveryAddress {
     city: input.city.trim(),
     state: input.state.trim().toUpperCase(),
   };
+}
+
+/** Orders have no complement field: it rides along with the number, as the delivery platform sends it. */
+export function numberWithComplement(
+  number: string,
+  complement: string | null | undefined,
+): string {
+  const extra = complement?.trim();
+  return extra ? `${number} - ${extra}` : number;
 }

@@ -21,6 +21,10 @@ const CATALOG = {
     message: 'Customer name must have 1 to {max} characters.',
   },
   CEP_INVALID: { kind: 'rule', message: 'CEP must have 8 digits.' },
+  ADDRESS_INCOMPLETE: {
+    kind: 'rule',
+    message: 'The address needs a street, a number, a city and a 2-letter state.',
+  },
   EXTERNAL_ID_REQUIRED: {
     kind: 'rule',
     message: 'Orders from the delivery platform need their external id.',

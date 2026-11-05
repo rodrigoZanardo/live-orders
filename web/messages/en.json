@@ -11,7 +11,8 @@
     "logout": "Sign out",
     "language": "Language",
     "menu": "Menu",
-    "signedInAs": "Signed in as {role}"
+    "signedInAs": "Signed in as {role}",
+    "stock": "Stock"
   },
   "theme": {
     "title": "Theme",
@@ -23,7 +24,8 @@
   "roles": {
     "ADMIN": "Admin",
     "STAFF": "Staff",
-    "VIEWER": "Viewer"
+    "VIEWER": "Viewer",
+    "CUSTOMER": "Customer"
   },
   "home": {
     "subtitle": "Pick a view to start.",
@@ -46,7 +48,6 @@
     "submitting": "Placing…",
     "created": "Order #{number} created.",
     "staffOnly": "Only staff can place orders.",
-    "signIn": "Sign in as staff to place the order.",
     "signInLink": "Sign in",
     "results": "{count, plural, =0 {No parts} one {# part} other {# parts}}",
     "search": "E.g. cap, oil filter, T-1212",
@@ -61,7 +62,12 @@
     "quantityOf": "Quantity of {name}",
     "subtitle": "Search by part name or code. Build the order and staff picks it at the counter.",
     "viewCart": "View order ({count, plural, one {# item} other {# items}})",
-    "parts": "Parts"
+    "parts": "Parts",
+    "signInOrRegister": "Sign in or create an account to place the order.",
+    "createAccount": "Create your account",
+    "deliveryTo": "Delivered to the address on your account.",
+    "myOrders": "My orders",
+    "logout": "Sign out"
   },
   "login": {
     "title": "Sign in",
@@ -70,7 +76,9 @@
     "password": "Password",
     "submit": "Sign in",
     "submitting": "Signing in…",
-    "demo": "Demo account: {email} / {password}"
+    "demo": "Demo account: {email} / {password}",
+    "noAccount": "No account yet?",
+    "register": "Create your account"
   },
   "status": {
     "RECEIVED": "Received",
@@ -210,6 +218,40 @@
     "TOO_MANY_ATTEMPTS": "Too many failed sign-ins. Wait {minutes} minutes and try again.",
     "SESSION_INVALID": "Your session expired. Sign in again.",
     "FORBIDDEN": "Your role cannot do this.",
-    "INVALID_INPUT": "Some fields are invalid: {details}"
+    "INVALID_INPUT": "Some fields are invalid: {details}",
+    "ADDRESS_INCOMPLETE": "The address needs a street, a number, a city and a 2-letter state."
+  },
+  "signup": {
+    "title": "Create your account",
+    "subtitle": "Order parts for delivery to your address.",
+    "name": "Your name",
+    "email": "Email",
+    "password": "Password",
+    "passwordHint": "At least 8 characters.",
+    "complement": "Complement (optional)",
+    "address": "Delivery address",
+    "submit": "Create account",
+    "submitting": "Creating…",
+    "haveAccount": "Already have an account?",
+    "signIn": "Sign in"
+  },
+  "myOrders": {
+    "title": "My orders",
+    "empty": "You have no orders yet.",
+    "number": "Order #{number}",
+    "placedAt": "Placed {date}",
+    "cancel": "Cancel order",
+    "cancelling": "Cancelling…",
+    "shop": "Order parts",
+    "unavailable": "Your orders could not be loaded. Try again in a moment."
+  },
+  "picking": {
+    "title": "Picking list",
+    "sku": "SKU",
+    "item": "Item",
+    "quantity": "Qty",
+    "location": "Location",
+    "noLocation": "No location",
+    "unavailable": "Locations are unavailable right now (stock service down)."
   }
 }

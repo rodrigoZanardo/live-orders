@@ -50,7 +50,12 @@ export function Shell({
             className="order-last -mx-4 flex w-[calc(100%+2rem)] gap-5 overflow-x-auto px-4 md:order-none md:mx-0 md:w-auto md:px-0"
           >
             <NavLink href="/gerencia">{t('board')}</NavLink>
-            {canCreate && <NavLink href="/orders/new">{t('newOrder')}</NavLink>}
+            {canCreate && (
+              <>
+                <NavLink href="/orders/new">{t('newOrder')}</NavLink>
+                <NavLink href="/cliente">{t('stock')}</NavLink>
+              </>
+            )}
             {role === 'ADMIN' && (
               <>
                 <NavLink href="/webhooks">{t('webhooks')}</NavLink>

@@ -5,13 +5,13 @@ import { useTranslations } from 'next-intl';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { createUser } from '@/app/actions';
-import { ROLES } from '@/lib/types';
+import { STAFF_ROLES } from '@/lib/types';
 import { Field, FormMessage, useAction } from './form';
 
 const schema = z.object({
   email: z.email(),
   password: z.string().min(8),
-  role: z.enum(ROLES),
+  role: z.enum(STAFF_ROLES),
 });
 type Values = z.infer<typeof schema>;
 
@@ -49,7 +49,7 @@ export function UserForm() {
       <Field label={t('role')}>
         {(props) => (
           <select {...props} {...register('role')}>
-            {ROLES.map((role) => (
+            {STAFF_ROLES.map((role) => (
               <option key={role} value={role}>
                 {roles(role)}
               </option>

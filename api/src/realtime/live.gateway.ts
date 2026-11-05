@@ -55,7 +55,8 @@ export class LiveGateway implements OnApplicationBootstrap, OnModuleDestroy {
     // the ticket holds the session token, so a session that expired since it was issued is still refused
     const token = ticket ? await this.tickets.consume(ticket).catch(() => null) : null;
     const actor = token ? await this.tokens.verify(token) : null;
-    if (!actor) {
+    // customers never get the feed: it carries every customer's name and address
+    if (!actor || actor.role === 'CUSTOMER') {
       socket.close(CLOSE_UNAUTHORIZED, 'SESSION_INVALID');
       return;
     }

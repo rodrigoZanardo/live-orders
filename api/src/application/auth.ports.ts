@@ -3,6 +3,7 @@ import type { Role, User } from '../domain/user';
 /** Port: users and their sign-in state. */
 export abstract class UserRepository {
   abstract findByEmail(email: string): Promise<User | null>;
+  abstract findById(id: string): Promise<User | null>;
   abstract findAll(): Promise<User[]>;
   /** Throws EMAIL_TAKEN when the email already exists. */
   abstract create(user: User): Promise<void>;

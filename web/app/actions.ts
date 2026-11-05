@@ -5,6 +5,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { isLocale } from '@/i18n/locales';
 import { api, ApiError, ROLE_COOKIE, TOKEN_COOKIE } from '@/lib/api';
+import { homeOf } from '@/lib/types';
 import type { ApiFailure, DeliveryAddress, OrderItem, OrderStatus, Role } from '@/lib/types';
 
 export type ActionResult = { error?: ApiFailure };
@@ -23,7 +24,22 @@ async function attempt<T>(fn: () => Promise<T>): Promise<ActionResult & { data?:
 }
 
 export async function login(input: { email: string; password: string }): Promise<ActionResult> {
-  const result = await attempt(() => api.login(input));
+  return startSession(await attempt(() => api.login(input)));
+}
+
+/** Customer sign-up; the API signs the new account in, so it lands on the parts counter. */
+export async function register(input: {
+  name: string;
+  email: string;
+  password: string;
+  address: DeliveryAddress & { complement?: string };
+}): Promise<ActionResult> {
+  return startSession(await attempt(() => api.register(input)));
+}
+
+async function startSession(
+  result: ActionResult & { data?: { token: string; user: { role: Role } } },
+): Promise<ActionResult> {
   if (!result.data) return { error: result.error };
 
   // https-only in production; COOKIE_SECURE=false allows a local http demo
@@ -41,7 +57,20 @@ export async function login(input: { email: string; password: string }): Promise
   jar.set(TOKEN_COOKIE, result.data.token, options);
   // the role only shows or hides buttons; the API checks the token on every call
   jar.set(ROLE_COOKIE, result.data.user.role, options);
-  redirect('/gerencia');
+  redirect(homeOf(result.data.user.role));
+}
+
+/** A customer orders for delivery to their saved address; the API takes name and address from the account. */
+export async function placeMyOrder(
+  items: OrderItem[],
+): Promise<ActionResult & { number?: number }> {
+  const result = await attempt(() => api.placeMyOrder(items));
+  return { error: result.error, number: result.data?.number };
+}
+
+export async function cancelMyOrder(id: string, version: number): Promise<ActionResult> {
+  const result = await attempt(() => api.cancelMyOrder(id, version));
+  return { error: result.error };
 }
 
 export async function logout(): Promise<void> {

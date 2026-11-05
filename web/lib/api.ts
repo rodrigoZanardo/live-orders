@@ -15,6 +15,7 @@ import type {
   Subscription,
   User,
 } from './types';
+import { ROLES } from './types';
 
 export const TOKEN_COOKIE = 'token';
 export const ROLE_COOKIE = 'role';
@@ -63,7 +64,7 @@ async function request(path: string, init: Init = {}): Promise<Response> {
   }
 
   // expired session: back to sign in (login itself answers 401 as a normal error)
-  if (response.status === 401 && path !== '/auth/login') redirect('/session-expired');
+  if (response.status === 401 && !path.startsWith('/auth/')) redirect('/session-expired');
   if (!response.ok) {
     const body: unknown = await response.json().catch(() => ({}));
     throw new ApiError(toFailure(body, response.status), response.status);
@@ -105,6 +106,21 @@ export const api = {
   login: (input: { email: string; password: string }) =>
     send<{ token: string; user: User }>('/auth/login', { method: 'POST', body: input }),
 
+  register: (input: {
+    name: string;
+    email: string;
+    password: string;
+    address: DeliveryAddress & { complement?: string };
+  }) => send<{ token: string; user: User }>('/auth/register', { method: 'POST', body: input }),
+  myOrders: () => send<Order[]>('/my/orders'),
+  placeMyOrder: (items: OrderItem[]) =>
+    send<Order>('/my/orders', { method: 'POST', body: { items } }),
+  cancelMyOrder: (id: string, version: number) =>
+    send<Order>(`/my/orders/${encodeURIComponent(id)}/cancel`, {
+      method: 'POST',
+      body: { version },
+    }),
+
   lastSeq: () => send<{ lastSeq: number }>('/events/last'),
   events: (after: number) => send<EventWithOrder[]>(`/events?after=${after}`),
   liveTicket: () => send<{ ticket: string }>('/live/ticket', { method: 'POST' }),
@@ -141,7 +157,7 @@ export const api = {
 /** The signed-in user's role from the login cookie; only decides which buttons show (the API checks again). */
 export async function currentRole(): Promise<Role | null> {
   const value = (await cookies()).get(ROLE_COOKIE)?.value;
-  return value === 'ADMIN' || value === 'STAFF' || value === 'VIEWER' ? value : null;
+  return ROLES.find((role) => role === value) ?? null;
 }
 
 /** API address as the browser sees it (may differ from API_URL inside docker). */

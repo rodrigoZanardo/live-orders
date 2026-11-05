@@ -1,9 +1,14 @@
 import { Body, Controller, Get, HttpCode, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { CreateUserUseCase, ListUsersUseCase, LoginUseCase } from '../application/auth.use-cases';
+import {
+  CreateUserUseCase,
+  ListUsersUseCase,
+  LoginUseCase,
+  RegisterCustomerUseCase,
+} from '../application/auth.use-cases';
 import type { User } from '../domain/user';
 import { ApiErrorResponse } from './api-error';
-import { CreateUserDto, LoginDto, LoginResponse, UserResponse } from './auth.dto';
+import { CreateUserDto, LoginDto, LoginResponse, RegisterDto, UserResponse } from './auth.dto';
 import { Public, Roles } from './auth.guard';
 
 const toResponse = (user: User): UserResponse => ({
@@ -15,7 +20,10 @@ const toResponse = (user: User): UserResponse => ({
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly login: LoginUseCase) {}
+  constructor(
+    private readonly login: LoginUseCase,
+    private readonly register: RegisterCustomerUseCase,
+  ) {}
 
   @Public()
   @Post('login')
@@ -27,6 +35,23 @@ export class AuthController {
   @ApiErrorResponse(429, 'Account locked after too many failed sign-ins')
   signIn(@Body() body: LoginDto): Promise<LoginResponse> {
     return this.login.execute(body.email, body.password);
+  }
+
+  @Public()
+  @Post('register')
+  @ApiOperation({ summary: 'Customer sign-up with a delivery address; returns a token like login' })
+  @ApiResponse({ status: 201, type: LoginResponse })
+  @ApiErrorResponse(
+    400,
+    'Invalid email, short password, email taken, invalid name, CEP or address, or invalid input',
+  )
+  signUp(@Body() body: RegisterDto): Promise<LoginResponse> {
+    const { name, address, email, password } = body;
+    return this.register.execute({
+      email,
+      password,
+      profile: { name, address: { ...address, complement: address.complement ?? null } },
+    });
   }
 }
 

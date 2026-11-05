@@ -58,6 +58,23 @@ export class CreateOrderDto {
   delivery?: DeliveryAddressDto;
 }
 
+export class CustomerOrderDto {
+  @ApiProperty({ type: [OrderItemDto] })
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(ORDER_RULES.maxItems)
+  @ValidateNested({ each: true })
+  @Type(() => OrderItemDto)
+  items!: OrderItemDto[];
+}
+
+export class CancelMyOrderDto {
+  @ApiProperty({ description: 'The version the customer saw', example: 1 })
+  @IsInt()
+  @Min(1)
+  version!: number;
+}
+
 export class MoveOrderDto {
   @ApiProperty({ enum: ORDER_STATUSES }) @IsIn(ORDER_STATUSES) to!: OrderStatus;
   @ApiProperty({ description: 'The version the caller saw', example: 1 })

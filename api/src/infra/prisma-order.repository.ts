@@ -19,6 +19,9 @@ type OrderWithItems = OrderRow & { items: OrderItemRow[] };
 /** Who appears in the timeline for events the server raises by itself. */
 export const SYSTEM_ACTOR = 'system';
 
+// shortcut: a customer sees their latest 100 orders, no paging; add paging if accounts get busier
+const MAX_CUSTOMER_ORDERS = 100;
+
 const withItems = { items: { orderBy: { position: 'asc' } } } satisfies Prisma.OrderInclude;
 
 @Injectable()
@@ -93,6 +96,7 @@ export class PrismaOrderRepository extends OrderRepository {
           version: order.version,
           statusChangedAt: order.statusChangedAt,
           externalId: order.externalId,
+          customerId: order.customerId,
           deliveryCep: delivery?.cep,
           deliveryStreet: delivery?.street,
           deliveryNumber: delivery?.number,
@@ -205,6 +209,16 @@ export class PrismaOrderRepository extends OrderRepository {
     return rows.map(toOrder);
   }
 
+  async findByCustomer(customerId: string): Promise<Order[]> {
+    const rows = await this.db.order.findMany({
+      where: { customerId },
+      include: withItems,
+      orderBy: { createdAt: 'desc' },
+      take: MAX_CUSTOMER_ORDERS,
+    });
+    return rows.map(toOrder);
+  }
+
   async findEventsAfter(after: number, limit: number): Promise<OrderEvent[]> {
     const rows = await this.db.event.findMany({
       where: { seq: { gt: after } },
@@ -248,6 +262,7 @@ function toOrder(row: OrderWithItems): Order {
     statusChangedAt: row.statusChangedAt,
     lateSince: row.lateSince,
     externalId: row.externalId,
+    customerId: row.customerId,
     createdAt: row.createdAt,
   });
 }

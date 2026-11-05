@@ -71,6 +71,21 @@ describe('listStockProducts', () => {
     expect(JSON.stringify(result)).not.toContain('quantity');
   });
 
+  it('keeps the bin location in the raw rows but never in the catalog', async () => {
+    fetchMock.mockImplementation((url) =>
+      Promise.resolve(
+        String(url).endsWith('/auth/login')
+          ? Response.json({ accessToken: 'service-token' })
+          : Response.json([{ sku: 'KB-001', name: 'Keyboard', quantity: 4, location: 'R01-B03' }]),
+      ),
+    );
+    const { fetchStockProducts } = await import('./stock');
+    expect((await fetchStockProducts())[0]?.location).toBe('R01-B03');
+    for (const exact of [true, false]) {
+      expect(JSON.stringify(await listStockProducts(exact))).not.toContain('R01-B03');
+    }
+  });
+
   it('fails with a clear message when the variables are missing, without calling the service', async () => {
     delete process.env.STOCK_API_PASSWORD;
     await expect(listStockProducts(false)).rejects.toThrow('STOCK_API_PASSWORD must be set');

@@ -11,7 +11,8 @@
     "logout": "Sair",
     "language": "Idioma",
     "menu": "Menu",
-    "signedInAs": "Conectado como {role}"
+    "signedInAs": "Conectado como {role}",
+    "stock": "Estoque"
   },
   "theme": {
     "title": "Tema",
@@ -23,7 +24,8 @@
   "roles": {
     "ADMIN": "Admin",
     "STAFF": "Equipe",
-    "VIEWER": "Visualizador"
+    "VIEWER": "Visualizador",
+    "CUSTOMER": "Cliente"
   },
   "home": {
     "subtitle": "Escolha uma tela para começar.",
@@ -46,7 +48,6 @@
     "submitting": "Enviando…",
     "created": "Pedido #{number} criado.",
     "staffOnly": "Só a equipe pode fazer pedidos.",
-    "signIn": "Entre como equipe para finalizar o pedido.",
     "signInLink": "Entrar",
     "results": "{count, plural, =0 {Nenhuma peça} one {# peça} other {# peças}}",
     "search": "Ex.: tampa, filtro de óleo, T-1212",
@@ -61,7 +62,12 @@
     "quantityOf": "Quantidade de {name}",
     "subtitle": "Busque pelo nome ou pelo código da peça. Monte o pedido e a equipe separa no balcão.",
     "viewCart": "Ver pedido ({count, plural, one {# item} other {# itens}})",
-    "parts": "Peças"
+    "parts": "Peças",
+    "signInOrRegister": "Entre ou crie sua conta para fazer o pedido.",
+    "createAccount": "Crie sua conta",
+    "deliveryTo": "Entregue no endereço do seu cadastro.",
+    "myOrders": "Meus pedidos",
+    "logout": "Sair"
   },
   "login": {
     "title": "Entrar",
@@ -70,7 +76,9 @@
     "password": "Senha",
     "submit": "Entrar",
     "submitting": "Entrando…",
-    "demo": "Conta demo: {email} / {password}"
+    "demo": "Conta demo: {email} / {password}",
+    "noAccount": "Ainda não tem conta?",
+    "register": "Crie sua conta"
   },
   "status": {
     "RECEIVED": "Recebido",
@@ -210,6 +218,40 @@
     "TOO_MANY_ATTEMPTS": "Muitas tentativas sem sucesso. Aguarde {minutes} minutos e tente de novo.",
     "SESSION_INVALID": "Sua sessão expirou. Entre de novo.",
     "FORBIDDEN": "Seu papel não permite esta ação.",
-    "INVALID_INPUT": "Alguns campos são inválidos: {details}"
+    "INVALID_INPUT": "Alguns campos são inválidos: {details}",
+    "ADDRESS_INCOMPLETE": "O endereço precisa de rua, número, cidade e UF com 2 letras."
+  },
+  "signup": {
+    "title": "Crie sua conta",
+    "subtitle": "Peça peças com entrega no seu endereço.",
+    "name": "Seu nome",
+    "email": "Email",
+    "password": "Senha",
+    "passwordHint": "Pelo menos 8 caracteres.",
+    "complement": "Complemento (opcional)",
+    "address": "Endereço de entrega",
+    "submit": "Criar conta",
+    "submitting": "Criando…",
+    "haveAccount": "Já tem conta?",
+    "signIn": "Entrar"
+  },
+  "myOrders": {
+    "title": "Meus pedidos",
+    "empty": "Você ainda não tem pedidos.",
+    "number": "Pedido nº {number}",
+    "placedAt": "Feito em {date}",
+    "cancel": "Cancelar pedido",
+    "cancelling": "Cancelando…",
+    "shop": "Pedir peças",
+    "unavailable": "Não foi possível carregar seus pedidos. Tente de novo em instantes."
+  },
+  "picking": {
+    "title": "Lista de separação",
+    "sku": "SKU",
+    "item": "Item",
+    "quantity": "Qtd",
+    "location": "Endereço",
+    "noLocation": "Sem endereço",
+    "unavailable": "Endereços indisponíveis agora (estoque fora do ar)."
   }
 }

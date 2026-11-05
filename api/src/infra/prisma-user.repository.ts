@@ -16,15 +16,34 @@ export class PrismaUserRepository extends UserRepository {
     return row ? toUser(row) : null;
   }
 
+  async findById(id: string): Promise<User | null> {
+    const row = await this.db.user.findUnique({ where: { id } });
+    return row ? toUser(row) : null;
+  }
+
   async findAll(): Promise<User[]> {
     const rows = await this.db.user.findMany({ orderBy: { email: 'asc' } });
     return rows.map(toUser);
   }
 
   async create(user: User): Promise<void> {
+    const profile = user.profile;
     try {
       await this.db.user.create({
-        data: { id: user.id, email: user.email, passwordHash: user.passwordHash, role: user.role },
+        data: {
+          id: user.id,
+          email: user.email,
+          passwordHash: user.passwordHash,
+          role: user.role,
+          name: profile?.name,
+          addressCep: profile?.address.cep,
+          addressStreet: profile?.address.street,
+          addressNumber: profile?.address.number,
+          addressComplement: profile?.address.complement,
+          addressDistrict: profile?.address.district,
+          addressCity: profile?.address.city,
+          addressState: profile?.address.state,
+        },
       });
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
@@ -66,5 +85,20 @@ function toUser(row: UserRow): User {
     role: row.role,
     failedLogins: row.failedLogins,
     lockedUntil: row.lockedUntil,
+    profile:
+      row.name === null
+        ? null
+        : {
+            name: row.name,
+            address: {
+              cep: row.addressCep ?? '',
+              street: row.addressStreet ?? '',
+              number: row.addressNumber ?? '',
+              complement: row.addressComplement,
+              district: row.addressDistrict ?? '',
+              city: row.addressCity ?? '',
+              state: row.addressState ?? '',
+            },
+          },
   });
 }

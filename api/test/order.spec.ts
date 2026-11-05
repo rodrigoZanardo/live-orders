@@ -31,6 +31,7 @@ function orderIn(status: OrderStatus): Order {
     statusChangedAt: now,
     lateSince: null,
     externalId: null,
+    customerId: null,
     createdAt: now,
   });
 }
