@@ -70,7 +70,8 @@ export class OrderController {
   @Post()
   @ApiOperation({ summary: 'Create a counter order; returns its ORDER_CREATED event' })
   @ApiResponse({ status: 201, type: EventWithOrderResponse })
-  @ApiErrorResponse(400, 'Invalid customer name, items, CEP or input')
+  @ApiErrorResponse(400, 'Invalid customer name, items, CEP, change, or input')
+  @ApiErrorResponse(503, 'Stock unavailable')
   @ApiErrorResponse(401, 'Missing or expired token')
   @ApiErrorResponse(403, 'Viewers cannot create orders')
   async create(
@@ -125,7 +126,7 @@ export class MyOrdersController {
   @Post()
   @ApiOperation({ summary: 'Place a delivery order to the saved address, under the account name' })
   @ApiResponse({ status: 201, type: OrderResponse })
-  @ApiErrorResponse(400, 'Invalid items, SKU not in stock, not enough stock, or invalid input')
+  @ApiErrorResponse(400, 'Invalid items, SKU not in stock, not enough stock, change, or input')
   @ApiErrorResponse(401, 'Missing or expired token')
   @ApiErrorResponse(403, 'Not a customer')
   @ApiErrorResponse(503, 'Stock unavailable')
@@ -133,7 +134,8 @@ export class MyOrdersController {
     @Body() body: CustomerOrderDto,
     @CurrentUser() actor: Actor,
   ): Promise<OrderResponse> {
-    return toOrderResponse((await this.place.execute(body.items, actor)).order);
+    const { items, ...payment } = body;
+    return toOrderResponse((await this.place.execute(items, payment, actor)).order);
   }
 
   @Post(':id/cancel')

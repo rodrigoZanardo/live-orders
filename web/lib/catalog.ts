@@ -34,6 +34,18 @@ export function filterProducts(products: ShopProduct[], search: string): ShopPro
 export function orderItems(products: ShopProduct[], cart: Cart): OrderItem[] {
   return products.flatMap((product) => {
     const quantity = cart[product.sku] ?? 0;
-    return quantity > 0 ? [{ sku: product.sku, name: product.name, quantity }] : [];
+    return quantity > 0
+      ? [{ sku: product.sku, name: product.name, quantity, unitPrice: product.price }]
+      : [];
   });
+}
+
+/** Ticket total in cents, or null when any line has no price (the API computes the real one). */
+export function ticketTotal(items: readonly OrderItem[]): number | null {
+  let total = 0;
+  for (const { unitPrice, quantity } of items) {
+    if (unitPrice === null || unitPrice === undefined) return null;
+    total += unitPrice * quantity;
+  }
+  return total;
 }

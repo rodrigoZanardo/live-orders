@@ -1,6 +1,6 @@
 import 'server-only';
 import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import type {
   ApiFailure,
   Delivery,
@@ -11,6 +11,7 @@ import type {
   OrderDetail,
   OrderItem,
   OrderStatus,
+  Payment,
   Role,
   Subscription,
   User,
@@ -113,8 +114,8 @@ export const api = {
     address: DeliveryAddress & { complement?: string };
   }) => send<{ token: string; user: User }>('/auth/register', { method: 'POST', body: input }),
   myOrders: () => send<Order[]>('/my/orders'),
-  placeMyOrder: (items: OrderItem[]) =>
-    send<Order>('/my/orders', { method: 'POST', body: { items } }),
+  placeMyOrder: (items: OrderItem[], payment: Payment) =>
+    send<Order>('/my/orders', { method: 'POST', body: { items, ...payment } }),
   cancelMyOrder: (id: string, version: number) =>
     send<Order>(`/my/orders/${encodeURIComponent(id)}/cancel`, {
       method: 'POST',
@@ -126,8 +127,13 @@ export const api = {
   liveTicket: () => send<{ ticket: string }>('/live/ticket', { method: 'POST' }),
   orders: (date?: string) => send<Order[]>(`/orders${date ? `?date=${date}` : ''}`),
   order: (id: string) => send<OrderDetail>(`/orders/${encodeURIComponent(id)}`),
-  createOrder: (input: { customerName: string; items: OrderItem[]; delivery?: DeliveryAddress }) =>
-    send<EventWithOrder>('/orders', { method: 'POST', body: input }),
+  createOrder: (input: {
+    customerName: string;
+    items: OrderItem[];
+    delivery?: DeliveryAddress;
+    paymentMethod?: Payment['paymentMethod'];
+    changeFor?: number;
+  }) => send<EventWithOrder>('/orders', { method: 'POST', body: input }),
   moveOrder: (id: string, input: { to: OrderStatus; version: number }) =>
     send<EventWithOrder>(`/orders/${encodeURIComponent(id)}/status`, {
       method: 'POST',
@@ -155,6 +161,16 @@ export const api = {
 };
 
 /** The signed-in user's role from the login cookie; only decides which buttons show (the API checks again). */
+/** One order for a staff page; a missing one is the 404 page. */
+export async function orderOrNotFound(id: string): Promise<OrderDetail> {
+  try {
+    return await api.order(id);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) notFound();
+    throw error;
+  }
+}
+
 export async function currentRole(): Promise<Role | null> {
   const value = (await cookies()).get(ROLE_COOKIE)?.value;
   return ROLES.find((role) => role === value) ?? null;

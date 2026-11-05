@@ -2,7 +2,7 @@
 jest.mock('server-only', () => ({}));
 
 const PRODUCTS = [
-  { sku: 'KB-001', name: 'Keyboard', quantity: 4 },
+  { sku: 'KB-001', name: 'Keyboard', quantity: 4, price: 15000 },
   { sku: 'MS-002', name: 'Mouse', quantity: 0 },
 ];
 
@@ -36,8 +36,8 @@ describe('listStockProducts', () => {
 
   it('signs in as the viewer, reads /products with its token and returns the exact quantities for staff', async () => {
     await expect(listStockProducts(true)).resolves.toStrictEqual([
-      { sku: 'KB-001', name: 'Keyboard', inStock: true, quantity: 4 },
-      { sku: 'MS-002', name: 'Mouse', inStock: false, quantity: 0 },
+      { sku: 'KB-001', name: 'Keyboard', inStock: true, price: 15000, quantity: 4 },
+      { sku: 'MS-002', name: 'Mouse', inStock: false, price: null, quantity: 0 },
     ]);
     expect(fetchMock).toHaveBeenCalledWith(
       'http://stock.test/products',
@@ -57,16 +57,17 @@ describe('listStockProducts', () => {
       ),
     );
     await expect(listStockProducts(true)).resolves.toStrictEqual([
-      { sku: 'KB-001', name: 'Keyboard', inStock: true, quantity: 1 },
-      { sku: 'MS-002', name: 'Mouse', inStock: false, quantity: 0 },
+      { sku: 'KB-001', name: 'Keyboard', inStock: true, price: null, quantity: 1 },
+      { sku: 'MS-002', name: 'Mouse', inStock: false, price: null, quantity: 0 },
     ]);
   });
 
   it('returns availability only, never a quantity, for anonymous visitors', async () => {
     const result = await listStockProducts(false);
     expect(result).toStrictEqual([
-      { sku: 'KB-001', name: 'Keyboard', inStock: true },
-      { sku: 'MS-002', name: 'Mouse', inStock: false },
+      // the price is public; the quantity is not
+      { sku: 'KB-001', name: 'Keyboard', inStock: true, price: 15000 },
+      { sku: 'MS-002', name: 'Mouse', inStock: false, price: null },
     ]);
     expect(JSON.stringify(result)).not.toContain('quantity');
   });

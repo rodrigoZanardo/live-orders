@@ -4,7 +4,7 @@ import { ORDER_STATUSES, type OrderStatus } from '../src/domain/order-status';
 
 const now = new Date('2026-11-03T12:00:00Z');
 const later = new Date('2026-11-03T12:05:00Z');
-const burger: OrderItem = { sku: 'BRG-01', name: 'Burger', quantity: 1 };
+const burger: OrderItem = { sku: 'BRG-01', name: 'Burger', quantity: 1, unitPrice: null };
 
 function counterOrder(overrides: Partial<CreateOrderInput> = {}): Order {
   return Order.create({
@@ -32,6 +32,8 @@ function orderIn(status: OrderStatus): Order {
     lateSince: null,
     externalId: null,
     customerId: null,
+    paymentMethod: 'CASH',
+    changeFor: null,
     createdAt: now,
   });
 }
@@ -46,6 +48,45 @@ function errorOf(fn: () => void): AppError | undefined {
   return undefined;
 }
 
+describe('order total and payment', () => {
+  const priced = (unitPrice: number | null, quantity = 2) => ({ ...burger, unitPrice, quantity });
+
+  it('sums unit price times quantity in cents', () => {
+    expect(counterOrder({ items: [priced(1250), priced(99, 1)] }).total).toBe(2599);
+  });
+
+  it('has no total when any item has no price', () => {
+    expect(counterOrder({ items: [priced(1250), priced(null)] }).total).toBeNull();
+  });
+
+  it('refuses a negative or fractional price', () => {
+    expect(errorOf(() => counterOrder({ items: [priced(-1)] }))?.code).toBe('ITEMS_INVALID');
+    expect(errorOf(() => counterOrder({ items: [priced(1.5)] }))?.code).toBe('ITEMS_INVALID');
+  });
+
+  it('accepts change for cash of at least the total', () => {
+    const order = counterOrder({ items: [priced(1000)], paymentMethod: 'CASH', changeFor: 2000 });
+    expect(order.paymentMethod).toBe('CASH');
+    expect(order.changeFor).toBe(2000);
+  });
+
+  it.each([
+    ['below the total', 'CASH', 1999],
+    ['for Pix', 'PIX', 5000],
+    ['for card', 'CARD', 5000],
+    ['without a method', undefined, 5000],
+    ['of zero', 'CASH', 0],
+  ] as const)('refuses change %s', (_, paymentMethod, changeFor) => {
+    const error = errorOf(() => counterOrder({ items: [priced(1000)], paymentMethod, changeFor }));
+    expect(error?.code).toBe('CHANGE_FOR_INVALID');
+  });
+
+  it('accepts any change when the total is unknown', () => {
+    const order = counterOrder({ items: [priced(null)], paymentMethod: 'CASH', changeFor: 100 });
+    expect(order.changeFor).toBe(100);
+  });
+});
+
 describe('Order.create', () => {
   it('starts as RECEIVED at version 1 with trimmed and normalized fields', () => {
     const order = counterOrder({
@@ -57,7 +98,7 @@ describe('Order.create', () => {
     expect(order.version).toBe(1);
     expect(order.statusChangedAt).toEqual(now);
     expect(order.customerName).toBe('Ana');
-    expect(order.items).toEqual([{ sku: 'BRG-01', name: 'Burger', quantity: 2 }]);
+    expect(order.items).toEqual([{ sku: 'BRG-01', name: 'Burger', quantity: 2, unitPrice: null }]);
     expect(order.delivery).toBeNull();
     expect(order.externalId).toBeNull();
   });

@@ -86,7 +86,16 @@ describeWithDatabase('orders API over HTTP', () => {
     expect(created.body).toMatchObject({
       type: 'ORDER_CREATED',
       actorEmail: 'staff@example.com',
-      order: { number: 1, status: 'RECEIVED', version: 1, items: [{ sku: 'BRG-01' }] },
+      order: {
+        number: 1,
+        status: 'RECEIVED',
+        version: 1,
+        // name and price from the stock; staff orders default to cash
+        items: [{ sku: 'BRG-01', name: 'Stock brg-01', unitPrice: 1000 }],
+        total: 2000,
+        paymentMethod: 'CASH',
+        changeFor: null,
+      },
     });
 
     const list = await http().get('/orders').set('Authorization', `Bearer ${viewerToken}`);

@@ -1,11 +1,11 @@
-import { filterProducts, maxQuantity, orderItems, setQuantity } from './catalog';
+import { filterProducts, maxQuantity, orderItems, setQuantity, ticketTotal } from './catalog';
 
 // Staff view: the exact quantity is known.
-const KEYBOARD = { sku: 'KB-001', name: 'Keyboard', inStock: true, quantity: 4 };
-const WAREHOUSE = { sku: 'WH-003', name: 'Cable', inStock: true, quantity: 500 };
+const KEYBOARD = { sku: 'KB-001', name: 'Keyboard', inStock: true, price: 15000, quantity: 4 };
+const WAREHOUSE = { sku: 'WH-003', name: 'Cable', inStock: true, price: 990, quantity: 500 };
 // Anonymous view: no quantity at all, only availability.
-const PUBLIC_MOUSE = { sku: 'MS-002', name: 'Mouse', inStock: false };
-const PUBLIC_CABLE = { sku: 'WH-003', name: 'Cable', inStock: true };
+const PUBLIC_MOUSE = { sku: 'MS-002', name: 'Mouse', inStock: false, price: null };
+const PUBLIC_CABLE = { sku: 'WH-003', name: 'Cable', inStock: true, price: 990 };
 
 describe('maxQuantity', () => {
   it('caps staff quantities at the stock on hand and at the API limit of 99', () => {
@@ -41,7 +41,7 @@ describe('setQuantity', () => {
 
 describe('filterProducts', () => {
   it('matches name or SKU, ignoring case and accents', () => {
-    const products = [KEYBOARD, { sku: 'TP-1', name: 'Tampão', inStock: true }];
+    const products = [KEYBOARD, { sku: 'TP-1', name: 'Tampão', inStock: true, price: null }];
     expect(filterProducts(products, 'TAMPAO')).toHaveLength(1);
     expect(filterProducts(products, 'kb-0')).toEqual([KEYBOARD]);
     expect(filterProducts(products, '  ')).toHaveLength(2);
@@ -52,12 +52,24 @@ describe('orderItems', () => {
   it('returns the cart lines in product order and leaves out the rest', () => {
     const items = orderItems([KEYBOARD, PUBLIC_MOUSE, WAREHOUSE], { 'WH-003': 2, 'KB-001': 1 });
     expect(items).toEqual([
-      { sku: 'KB-001', name: 'Keyboard', quantity: 1 },
-      { sku: 'WH-003', name: 'Cable', quantity: 2 },
+      { sku: 'KB-001', name: 'Keyboard', quantity: 1, unitPrice: 15000 },
+      { sku: 'WH-003', name: 'Cable', quantity: 2, unitPrice: 990 },
     ]);
   });
 
   it('returns no lines for an empty cart', () => {
     expect(orderItems([PUBLIC_CABLE], {})).toEqual([]);
+  });
+});
+
+describe('ticketTotal', () => {
+  it('sums price times quantity in cents', () => {
+    expect(ticketTotal(orderItems([KEYBOARD, WAREHOUSE], { 'KB-001': 1, 'WH-003': 2 }))).toBe(
+      16980,
+    );
+  });
+
+  it('is null when a line has no price', () => {
+    expect(ticketTotal([{ sku: 'A', name: 'A', quantity: 1, unitPrice: null }])).toBeNull();
   });
 });

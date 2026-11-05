@@ -31,8 +31,8 @@ describe('StockClient', () => {
     fetchMock.mockResolvedValueOnce(signedIn()).mockImplementation(() =>
       Promise.resolve(
         Response.json([
-          { sku: 'BRG-01', quantity: 7 },
-          { sku: 'KB-001', quantity: 2 },
+          { sku: 'BRG-01', name: 'Burger', quantity: 7, price: 2590 },
+          { sku: 'KB-001', name: 'Kit', quantity: 2 },
           { sku: 'OTHER', quantity: 9 },
         ]),
       ),
@@ -52,9 +52,10 @@ describe('StockClient', () => {
       `${BASE}/products`,
       expect.objectContaining({ headers: { Authorization: `Bearer ${TOKEN}` } }),
     );
+    // name and price come from the stock; a product without `price` (older Stock Manager) has none
     expect([...found]).toEqual([
-      ['BRG-01', 7],
-      ['KB-001', 2],
+      ['BRG-01', { available: 7, name: 'Burger', price: 2590 }],
+      ['KB-001', { available: 2, name: 'Kit', price: null }],
     ]);
   });
 
@@ -62,7 +63,7 @@ describe('StockClient', () => {
     fetchMock
       .mockResolvedValueOnce(signedIn())
       .mockResolvedValueOnce(Response.json([{ sku: 'BRG-01', quantity: 7, available: 3 }]));
-    expect([...(await client().available(['BRG-01']))]).toEqual([['BRG-01', 3]]);
+    expect((await client().available(['BRG-01'])).get('BRG-01')?.available).toBe(3);
   });
 
   it('asks nothing when there are no SKUs', async () => {
@@ -89,7 +90,7 @@ describe('StockClient', () => {
       .mockResolvedValueOnce(new Response('expired', { status: 401 }))
       .mockResolvedValueOnce(signedIn())
       .mockResolvedValueOnce(Response.json([{ sku: 'BRG-01', quantity: 3 }]));
-    expect([...(await client().available(['BRG-01']))]).toEqual([['BRG-01', 3]]);
+    expect((await client().available(['BRG-01'])).get('BRG-01')?.available).toBe(3);
     expect(fetchMock).toHaveBeenCalledTimes(4);
   });
 

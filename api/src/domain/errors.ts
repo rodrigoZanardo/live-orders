@@ -29,6 +29,10 @@ const CATALOG = {
     kind: 'rule',
     message: 'Orders from the delivery platform need their external id.',
   },
+  CHANGE_FOR_INVALID: {
+    kind: 'rule',
+    message: 'Change is only for cash, and must be at least the order total.',
+  },
   SKU_NOT_IN_STOCK: { kind: 'rule', message: 'SKU {sku} is not a product in stock.' },
   STOCK_INSUFFICIENT: {
     kind: 'rule',

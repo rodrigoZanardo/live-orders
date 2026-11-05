@@ -14,8 +14,8 @@ function codeOf(fn: () => void): string | undefined {
 
 describe('assertInStock', () => {
   const available = new Map([
-    ['BRG-01', 5],
-    ['KB-001', 2],
+    ['BRG-01', { available: 5, name: 'Burger', price: null }],
+    ['KB-001', { available: 2, name: 'Kit', price: 100 }],
   ]);
 
   it('accepts an order that fits the stock', () => {

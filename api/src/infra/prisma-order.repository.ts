@@ -97,6 +97,8 @@ export class PrismaOrderRepository extends OrderRepository {
           statusChangedAt: order.statusChangedAt,
           externalId: order.externalId,
           customerId: order.customerId,
+          paymentMethod: order.paymentMethod,
+          changeFor: order.changeFor,
           deliveryCep: delivery?.cep,
           deliveryStreet: delivery?.street,
           deliveryNumber: delivery?.number,
@@ -246,7 +248,12 @@ function toOrder(row: OrderWithItems): Order {
     number: row.number,
     customerName: row.customerName,
     channel: row.channel,
-    items: row.items.map(({ sku, name, quantity }) => ({ sku, name, quantity })),
+    items: row.items.map(({ sku, name, quantity, unitPrice }) => ({
+      sku,
+      name,
+      quantity,
+      unitPrice,
+    })),
     delivery: hasDelivery
       ? {
           cep: row.deliveryCep ?? '',
@@ -263,6 +270,8 @@ function toOrder(row: OrderWithItems): Order {
     lateSince: row.lateSince,
     externalId: row.externalId,
     customerId: row.customerId,
+    paymentMethod: row.paymentMethod,
+    changeFor: row.changeFor,
     createdAt: row.createdAt,
   });
 }

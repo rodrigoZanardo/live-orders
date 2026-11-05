@@ -16,7 +16,13 @@ export type OrderStatus = (typeof ORDER_STATUSES)[number];
 export type OrderChannel = 'COUNTER' | 'DELIVERY_PLATFORM';
 export type EventType = 'ORDER_CREATED' | 'ORDER_STATUS_CHANGED' | 'ORDER_LATE';
 
-export type OrderItem = { sku: string; name: string; quantity: number };
+/** `unitPrice` in cents, a snapshot of the stock price when the order was placed (API responses only). */
+export type OrderItem = { sku: string; name: string; quantity: number; unitPrice?: number | null };
+
+/** Paid on delivery (or at the counter); platform orders have none. */
+export const PAYMENT_METHODS = ['CASH', 'PIX', 'CARD'] as const;
+export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+export type Payment = { paymentMethod: PaymentMethod; changeFor?: number };
 
 export type DeliveryAddress = {
   cep: string;
@@ -33,6 +39,10 @@ export type Order = {
   customerName: string;
   channel: OrderChannel;
   items: OrderItem[];
+  /** Cents; null when any item has no price. */
+  total: number | null;
+  paymentMethod: PaymentMethod | null;
+  changeFor: number | null;
   delivery: DeliveryAddress | null;
   status: OrderStatus;
   version: number;
@@ -98,7 +108,16 @@ export type StockProduct = {
   quantity: number;
   available?: number;
   location?: string | null;
+  /** Sale price in cents; absent on older Stock Manager versions, null when unset. */
+  price?: number | null;
 };
 
 /** What the customer screen gets: the quantity only for staff and admin, otherwise the key is absent. */
-export type ShopProduct = { sku: string; name: string; inStock: boolean; quantity?: number };
+/** `price` (cents) is public: everyone sees it, anonymous visitors too. */
+export type ShopProduct = {
+  sku: string;
+  name: string;
+  inStock: boolean;
+  price: number | null;
+  quantity?: number;
+};

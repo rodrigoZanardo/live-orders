@@ -98,6 +98,10 @@ describeWithDatabase('incoming webhook POST /webhooks/orders', () => {
       channel: 'DELIVERY_PLATFORM',
       externalId: 'ext-1',
       status: 'RECEIVED',
+      // platform orders keep their own names and are paid on the platform
+      items: [{ sku: 'KB-001', name: 'Keyboard', quantity: 1, unitPrice: null }],
+      total: null,
+      paymentMethod: null,
     });
   });
 

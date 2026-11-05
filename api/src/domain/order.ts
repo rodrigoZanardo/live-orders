@@ -10,11 +10,30 @@ export const ORDER_RULES = {
   maxQuantity: 99,
 } as const;
 
+/** Paid on delivery (or at the counter). Platform orders are paid on the platform and have none. */
+export const PAYMENT_METHODS = ['CASH', 'PIX', 'CARD'] as const;
+export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+
 export type OrderItem = {
   sku: string;
   name: string;
   quantity: number;
+  /** Sale price in cents, copied from the stock when the order was placed; null when unknown. */
+  unitPrice: number | null;
 };
+
+/** An item as callers hand it in; the price is optional (platform orders send none). */
+export type NewOrderItem = Omit<OrderItem, 'unitPrice'> & { unitPrice?: number | null };
+
+/** Sum in cents, or null when any item has no price. */
+export function orderTotal(items: readonly OrderItem[]): number | null {
+  let total = 0;
+  for (const item of items) {
+    if (item.unitPrice === null) return null;
+    total += item.unitPrice * item.quantity;
+  }
+  return total;
+}
 
 export type DeliveryAddress = {
   cep: string;
@@ -43,6 +62,9 @@ export type OrderProps = {
   externalId: string | null;
   /** The CUSTOMER account that placed the order; null for staff and platform orders. */
   customerId: string | null;
+  paymentMethod: PaymentMethod | null;
+  /** Cents the customer will pay with in cash, so the driver brings change; CASH only. */
+  changeFor: number | null;
   createdAt: Date;
 };
 
@@ -51,10 +73,12 @@ export type CreateOrderInput = {
   number: number;
   customerName: string;
   channel: OrderChannel;
-  items: OrderItem[];
+  items: NewOrderItem[];
   delivery?: DeliveryAddress | null;
   externalId?: string | null;
   customerId?: string | null;
+  paymentMethod?: PaymentMethod | null;
+  changeFor?: number | null;
   now: Date;
 };
 
@@ -76,6 +100,19 @@ export class Order {
       throw new AppError('EXTERNAL_ID_REQUIRED');
     }
 
+    const paymentMethod = input.paymentMethod ?? null;
+    const changeFor = input.changeFor ?? null;
+    const total = orderTotal(items);
+    if (
+      changeFor !== null &&
+      (paymentMethod !== 'CASH' ||
+        !Number.isInteger(changeFor) ||
+        changeFor <= 0 ||
+        (total !== null && changeFor < total))
+    ) {
+      throw new AppError('CHANGE_FOR_INVALID');
+    }
+
     return new Order({
       id: input.id,
       number: input.number,
@@ -89,6 +126,8 @@ export class Order {
       lateSince: null,
       externalId,
       customerId: input.customerId ?? null,
+      paymentMethod,
+      changeFor,
       createdAt: input.now,
     });
   }
@@ -149,6 +188,18 @@ export class Order {
     return this.props.customerId;
   }
 
+  get paymentMethod(): PaymentMethod | null {
+    return this.props.paymentMethod;
+  }
+
+  get changeFor(): number | null {
+    return this.props.changeFor;
+  }
+
+  get total(): number | null {
+    return orderTotal(this.props.items);
+  }
+
   get createdAt(): Date {
     return this.props.createdAt;
   }
@@ -194,11 +245,12 @@ export class Order {
   }
 }
 
-function validItems(input: OrderItem[]): OrderItem[] {
+function validItems(input: NewOrderItem[]): OrderItem[] {
   const items = input.map((item) => ({
     sku: item.sku.trim().toUpperCase(),
     name: item.name.trim(),
     quantity: item.quantity,
+    unitPrice: item.unitPrice ?? null,
   }));
 
   const isValid = (item: OrderItem) =>
@@ -206,7 +258,8 @@ function validItems(input: OrderItem[]): OrderItem[] {
     item.name.length > 0 &&
     Number.isInteger(item.quantity) &&
     item.quantity >= 1 &&
-    item.quantity <= ORDER_RULES.maxQuantity;
+    item.quantity <= ORDER_RULES.maxQuantity &&
+    (item.unitPrice === null || (Number.isInteger(item.unitPrice) && item.unitPrice >= 0));
 
   if (items.length === 0 || items.length > ORDER_RULES.maxItems || !items.every(isValid)) {
     throw new AppError('ITEMS_INVALID', {

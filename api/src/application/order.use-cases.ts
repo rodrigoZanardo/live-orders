@@ -3,7 +3,13 @@ import { randomUUID } from 'crypto';
 import { businessTimeZone } from '../env';
 import { businessDay, isBusinessDay } from '../domain/business-day';
 import { AppError } from '../domain/errors';
-import { numberWithComplement, Order, type DeliveryAddress, type OrderItem } from '../domain/order';
+import {
+  numberWithComplement,
+  Order,
+  type DeliveryAddress,
+  type NewOrderItem,
+  type PaymentMethod,
+} from '../domain/order';
 import { assertInStock } from '../domain/stock-check';
 import type { OrderStatus } from '../domain/order-status';
 import { UserRepository, type Actor } from './auth.ports';
@@ -17,11 +23,18 @@ export type EventWithOrder = OrderEvent & { order: Order };
 
 export const MAX_EVENTS_PER_PAGE = 500;
 
+/** What staff or a customer ask for: SKU and quantity; any item name sent is ignored. */
+export type RequestedItem = { sku: string; quantity: number };
+
+export type Payment = { paymentMethod: PaymentMethod; changeFor?: number | null };
+
 export type NewCounterOrder = {
   customerName: string;
-  items: OrderItem[];
+  items: RequestedItem[];
   delivery?: DeliveryAddress | null;
   customerId?: string | null;
+  paymentMethod?: PaymentMethod;
+  changeFor?: number | null;
 };
 
 @Injectable()
@@ -33,10 +46,19 @@ export class CreateOrderUseCase {
   ) {}
 
   async execute(input: NewCounterOrder, actor: Actor, now = new Date()): Promise<EventWithOrder> {
-    await this.checkStock(input.items);
+    const items = await this.fromStock(input.items);
     const day = businessDay(now, businessTimeZone());
     const build = (number: number) =>
-      Order.create({ ...input, id: randomUUID(), number, channel: 'COUNTER', now });
+      Order.create({
+        ...input,
+        items,
+        // staff take payment at the counter, usually cash: CASH unless they say otherwise
+        paymentMethod: input.paymentMethod ?? 'CASH',
+        id: randomUUID(),
+        number,
+        channel: 'COUNTER',
+        now,
+      });
     const { order, event } = await this.orders.create(day, build, actor.email);
     // after the commit, never inside the transaction
     const created = { ...event, order };
@@ -44,10 +66,18 @@ export class CreateOrderUseCase {
     return created;
   }
 
-  /** Counter orders only; platform orders are already paid and are not checked here. */
-  private async checkStock(items: OrderItem[]): Promise<void> {
-    const skus = [...new Set(items.map((item) => item.sku))];
-    assertInStock(items, await this.stock.available(skus));
+  /**
+   * Counter orders only; platform orders are already paid and are not checked here.
+   * Name and price are a snapshot of the stock at this moment, never what the request sent.
+   */
+  private async fromStock(items: RequestedItem[]): Promise<NewOrderItem[]> {
+    const products = await this.stock.available([...new Set(items.map((item) => item.sku))]);
+    assertInStock(items, products);
+    return items.map(({ sku, quantity }) => {
+      const product = products.get(sku);
+      if (!product) throw new AppError('SKU_NOT_IN_STOCK', { sku });
+      return { sku, quantity, name: product.name, unitPrice: product.price };
+    });
   }
 }
 
@@ -134,7 +164,13 @@ export class PlaceCustomerOrderUseCase {
     private readonly createOrder: CreateOrderUseCase,
   ) {}
 
-  async execute(items: OrderItem[], actor: Actor, now = new Date()): Promise<EventWithOrder> {
+  /** Customers must say how they pay on delivery; there is no default for them. */
+  async execute(
+    items: RequestedItem[],
+    payment: Payment,
+    actor: Actor,
+    now = new Date(),
+  ): Promise<EventWithOrder> {
     const profile = (await this.users.findById(actor.id))?.profile;
     if (!profile) {
       throw new AppError('FORBIDDEN');
@@ -146,6 +182,8 @@ export class PlaceCustomerOrderUseCase {
         items,
         delivery: { ...address, number: numberWithComplement(address.number, complement) },
         customerId: actor.id,
+        paymentMethod: payment.paymentMethod,
+        changeFor: payment.changeFor,
       },
       actor,
       now,

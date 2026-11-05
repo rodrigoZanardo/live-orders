@@ -37,10 +37,7 @@ describeWithServices('late-order alert with a 1 s delay', () => {
   });
 
   const newOrder = () =>
-    create.execute(
-      { customerName: 'Ana', items: [{ sku: 'BRG-01', name: 'Burger', quantity: 1 }] },
-      staff,
-    );
+    create.execute({ customerName: 'Ana', items: [{ sku: 'BRG-01', quantity: 1 }] }, staff);
   const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
   it('flags an order still PREPARING after the delay and publishes ORDER_LATE', async () => {

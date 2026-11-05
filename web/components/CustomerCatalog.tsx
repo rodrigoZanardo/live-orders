@@ -1,16 +1,25 @@
 'use client';
 
 import Link from 'next/link';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useState, type FormEvent } from 'react';
 import { createOrder, placeMyOrder } from '@/app/actions';
-import { filterProducts, maxQuantity, orderItems, setQuantity, type Cart } from '@/lib/catalog';
-import type { Role, ShopProduct } from '@/lib/types';
+import {
+  filterProducts,
+  maxQuantity,
+  orderItems,
+  setQuantity,
+  ticketTotal,
+  type Cart,
+} from '@/lib/catalog';
+import { formatCents, parseReais } from '@/lib/money';
+import { PAYMENT_METHODS, type PaymentMethod, type Role, type ShopProduct } from '@/lib/types';
 import { Field, FormMessage, useAction } from './form';
 
 /**
- * Parts counter: search first, a dense parts list, and the order as a counter ticket. No prices (no payment).
- * Staff see exact quantities; everyone else sees availability only (the server never sends the number).
+ * Parts counter: search first, a dense parts list, and the order as a counter ticket with prices and
+ * payment on delivery. Prices are public; staff see exact quantities, everyone else availability only
+ * (the server never sends the number). The total here is a preview: the API prices the order from the stock.
  * Anyone can fill the ticket; staff place it for a named customer, a signed-in customer for delivery to their
  * saved address. The API checks every limit again.
  */
@@ -23,7 +32,12 @@ export function CustomerCatalog({
 }) {
   const t = useTranslations('catalog');
   const v = useTranslations('order.validation');
+  const p = useTranslations('payment');
+  const locale = useLocale();
   const { result, pending, run } = useAction();
+  // customers must choose; staff may leave it empty and the API counts it as cash
+  const [method, setMethod] = useState<PaymentMethod | null>(null);
+  const [changeText, setChangeText] = useState('');
   const [search, setSearch] = useState('');
   const [cart, setCart] = useState<Cart>({});
   const [name, setName] = useState('');
@@ -37,7 +51,18 @@ export function CustomerCatalog({
   const units = items.reduce((sum, item) => sum + item.quantity, 0);
   const nameLength = name.trim().length;
   const nameMissing = isStaff && (nameLength < 1 || nameLength > 80);
-  const disabled = !canOrder || pending || items.length === 0 || nameMissing;
+  const total = ticketTotal(items);
+  const wantsChange = method === 'CASH' && changeText.trim() !== '';
+  const changeFor = wantsChange ? parseReais(changeText) : null;
+  const changeInvalid =
+    wantsChange && (changeFor === null || (total !== null && changeFor < total));
+  const disabled =
+    !canOrder ||
+    pending ||
+    items.length === 0 ||
+    nameMissing ||
+    (isCustomer && method === null) ||
+    changeInvalid;
   const change = (product: ShopProduct, quantity: number) => {
     setCreated(null);
     setCart((current) => setQuantity(current, product, quantity));
@@ -48,13 +73,22 @@ export function CustomerCatalog({
     // Enter in the name field submits the form too; it must not bypass the disabled button
     if (disabled) return;
     setCreated(null);
+    const payment = method
+      ? { paymentMethod: method, ...(changeFor !== null ? { changeFor } : {}) }
+      : null;
+    // a customer without a payment method never gets here: the button is disabled
+    if (isCustomer && !payment) return;
     const outcome = await run(() =>
-      isCustomer ? placeMyOrder(items) : createOrder({ customerName: name.trim(), items }),
+      isCustomer && payment
+        ? placeMyOrder(items, payment)
+        : createOrder({ customerName: name.trim(), items, ...payment }),
     );
     if (outcome?.number) {
       setCreated(outcome.number);
       setName('');
       setCart({});
+      setMethod(null);
+      setChangeText('');
     }
   };
 
@@ -166,14 +200,66 @@ export function CustomerCatalog({
                         quantity={item.quantity}
                         onChange={(quantity) => change(product, quantity)}
                       />
+                      <span className="w-20 text-right text-sm font-semibold tabular-nums">
+                        {product.price === null
+                          ? '—'
+                          : formatCents(product.price * item.quantity, locale)}
+                      </span>
                     </li>
                   );
                 })}
               </ul>
             )}
 
+            {items.length > 0 && (
+              <p className="flex items-baseline justify-between font-display text-xl font-extrabold">
+                {t('total')}
+                <span className="tabular-nums">
+                  {total === null ? (
+                    <span className="font-sans text-sm font-semibold text-muted">
+                      {t('totalUnknown')}
+                    </span>
+                  ) : (
+                    formatCents(total, locale)
+                  )}
+                </span>
+              </p>
+            )}
+
             {canOrder ? (
               <>
+                <fieldset className="space-y-1.5">
+                  <legend className="label">{p('title')}</legend>
+                  {PAYMENT_METHODS.map((option) => (
+                    <label key={option} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value={option}
+                        checked={method === option}
+                        onChange={() => setMethod(option)}
+                      />
+                      {p(option)}
+                    </label>
+                  ))}
+                </fieldset>
+                {method === 'CASH' && (
+                  <Field
+                    label={p('changeForLabel')}
+                    hint={changeInvalid ? undefined : p('changeHint')}
+                    error={changeInvalid ? p('changeInvalid') : undefined}
+                  >
+                    {(props) => (
+                      <input
+                        {...props}
+                        inputMode="decimal"
+                        autoComplete="off"
+                        value={changeText}
+                        onChange={(event) => setChangeText(event.target.value)}
+                      />
+                    )}
+                  </Field>
+                )}
                 {isCustomer ? (
                   <p className="text-sm text-muted">{t('deliveryTo')}</p>
                 ) : (
@@ -246,10 +332,16 @@ function PartRow({
   onChange: (quantity: number) => void;
 }) {
   const t = useTranslations('catalog');
+  const locale = useLocale();
   return (
     <li className="grid grid-cols-[auto_1fr] items-center gap-x-4 gap-y-3 py-4 sm:grid-cols-[auto_1fr_auto_10rem]">
       <span className="part-tag">{product.sku}</span>
-      <h3 className="text-lg font-semibold">{product.name}</h3>
+      <h3 className="text-lg font-semibold">
+        {product.name}
+        <span className="ml-2 text-base font-normal text-muted tabular-nums">
+          {product.price === null ? t('noPrice') : formatCents(product.price, locale)}
+        </span>
+      </h3>
       <p
         className={`col-start-2 flex items-center gap-2 text-sm sm:col-start-auto ${product.inStock ? 'text-success' : 'text-danger'}`}
       >

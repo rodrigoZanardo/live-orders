@@ -67,7 +67,11 @@
     "createAccount": "Create your account",
     "deliveryTo": "Delivered to the address on your account.",
     "myOrders": "My orders",
-    "logout": "Sign out"
+    "logout": "Sign out",
+    "each": "{price} each",
+    "noPrice": "No price",
+    "total": "Total",
+    "totalUnknown": "Total confirmed by staff"
   },
   "login": {
     "title": "Sign in",
@@ -157,7 +161,10 @@
       "quantity": "1 to 99.",
       "cep": "8 digits, e.g. 01001-000.",
       "required": "Required."
-    }
+    },
+    "total": "Total",
+    "printSlip": "Print picking slip",
+    "payment": "Payment"
   },
   "webhooks": {
     "title": "Webhooks",
@@ -203,6 +210,7 @@
     "CUSTOMER_NAME_INVALID": "Customer name must have 1 to {max} characters.",
     "CEP_INVALID": "CEP must have 8 digits.",
     "EXTERNAL_ID_REQUIRED": "Orders from the delivery platform need their external id.",
+    "CHANGE_FOR_INVALID": "Change is only for cash, and must be at least the order total.",
     "SKU_NOT_IN_STOCK": "{sku} is not a product in stock.",
     "STOCK_INSUFFICIENT": "Not enough stock for {sku}: {available} available.",
     "STOCK_UNAVAILABLE": "Stock is unavailable right now. Try again in a moment.",
@@ -243,7 +251,10 @@
     "cancel": "Cancel order",
     "cancelling": "Cancelling…",
     "shop": "Order parts",
-    "unavailable": "Your orders could not be loaded. Try again in a moment."
+    "unavailable": "Your orders could not be loaded. Try again in a moment.",
+    "total": "Total: {amount}",
+    "live": "This page updates by itself.",
+    "progress": "Order progress"
   },
   "picking": {
     "title": "Picking list",
@@ -252,6 +263,25 @@
     "quantity": "Qty",
     "location": "Location",
     "noLocation": "No location",
-    "unavailable": "Locations are unavailable right now (stock service down)."
+    "unavailable": "Locations are unavailable right now (stock service down).",
+    "slipTitle": "Picking slip · order #{number}",
+    "date": "Date",
+    "customer": "Customer",
+    "delivery": "Delivery",
+    "counterPickup": "Pickup at the counter",
+    "picked": "Picked",
+    "signature": "Picked by (name and signature)",
+    "print": "Print"
+  },
+  "payment": {
+    "title": "Payment",
+    "CASH": "Cash on delivery",
+    "PIX": "Pix on delivery",
+    "CARD": "Card on delivery",
+    "changeFor": "Change for {amount}",
+    "changeForLabel": "Change for (R$)",
+    "changeHint": "Leave empty if no change is needed.",
+    "changeInvalid": "Enter an amount of at least the total, e.g. 50,00.",
+    "none": "Paid on the platform"
   }
 }

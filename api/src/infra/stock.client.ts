@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { StockAvailability } from '../application/stock-availability';
 import { AppError } from '../domain/errors';
+import type { StockProduct } from '../domain/stock-check';
 
 // shortcut: the free hosting plan takes up to ~40 s to wake the stock services; lower it on always-on hosting
 export const STOCK_TIMEOUT_MS = 45_000;
@@ -23,7 +24,7 @@ export class StockClient extends StockAvailability {
     super();
   }
 
-  async available(skus: string[]): Promise<Map<string, number>> {
+  async available(skus: string[]): Promise<Map<string, StockProduct>> {
     if (skus.length === 0) {
       return new Map();
     }
@@ -55,7 +56,7 @@ export class StockClient extends StockAvailability {
       throw new AppError('STOCK_UNAVAILABLE');
     }
     const wanted = new Set(skus);
-    const found = new Map<string, number>();
+    const found = new Map<string, StockProduct>();
     for (const product of body) {
       if (typeof product !== 'object' || product === null) continue;
       const sku = 'sku' in product ? product.sku : undefined;
@@ -66,8 +67,16 @@ export class StockClient extends StockAvailability {
           : 'quantity' in product
             ? product.quantity
             : undefined;
-      if (typeof sku === 'string' && typeof quantity === 'number' && wanted.has(sku)) {
-        found.set(sku, quantity);
+      const name = 'name' in product && typeof product.name === 'string' ? product.name : sku;
+      // `price` (cents) is new in Stock Manager; absent or not a number means no price yet
+      const price = 'price' in product && typeof product.price === 'number' ? product.price : null;
+      if (
+        typeof sku === 'string' &&
+        typeof name === 'string' &&
+        typeof quantity === 'number' &&
+        wanted.has(sku)
+      ) {
+        found.set(sku, { available: quantity, name, price });
       }
     }
     return found;

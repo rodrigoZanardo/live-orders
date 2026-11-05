@@ -6,7 +6,14 @@ import { redirect } from 'next/navigation';
 import { isLocale } from '@/i18n/locales';
 import { api, ApiError, ROLE_COOKIE, TOKEN_COOKIE } from '@/lib/api';
 import { homeOf } from '@/lib/types';
-import type { ApiFailure, DeliveryAddress, OrderItem, OrderStatus, Role } from '@/lib/types';
+import type {
+  ApiFailure,
+  DeliveryAddress,
+  OrderItem,
+  OrderStatus,
+  Payment,
+  Role,
+} from '@/lib/types';
 
 export type ActionResult = { error?: ApiFailure };
 
@@ -63,8 +70,9 @@ async function startSession(
 /** A customer orders for delivery to their saved address; the API takes name and address from the account. */
 export async function placeMyOrder(
   items: OrderItem[],
+  payment: Payment,
 ): Promise<ActionResult & { number?: number }> {
-  const result = await attempt(() => api.placeMyOrder(items));
+  const result = await attempt(() => api.placeMyOrder(items, payment));
   return { error: result.error, number: result.data?.number };
 }
 
@@ -90,6 +98,8 @@ export async function createOrder(input: {
   customerName: string;
   items: OrderItem[];
   delivery?: DeliveryAddress;
+  paymentMethod?: Payment['paymentMethod'];
+  changeFor?: number;
 }): Promise<ActionResult & { number?: number }> {
   const result = await attempt(() => api.createOrder(input));
   return { error: result.error, number: result.data?.order.number };

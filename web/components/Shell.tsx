@@ -39,7 +39,7 @@ export function Shell({
 
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-20 border-b border-line bg-panel/95 backdrop-blur">
+      <header className="sticky top-0 z-20 border-b print:hidden border-line bg-panel/95 backdrop-blur">
         <div className="mx-auto flex max-w-[110rem] flex-wrap items-center gap-x-6 px-4 sm:px-6">
           <span className="flex items-center gap-2 py-2.5 font-display text-2xl font-extrabold tracking-wide">
             <BrandMark />

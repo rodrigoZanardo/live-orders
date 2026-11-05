@@ -14,7 +14,8 @@ function isStockProduct(value: unknown): value is StockProduct {
     typeof value.name === 'string' &&
     'quantity' in value &&
     typeof value.quantity === 'number' &&
-    (!('location' in value) || value.location === null || typeof value.location === 'string')
+    (!('location' in value) || value.location === null || typeof value.location === 'string') &&
+    (!('price' in value) || value.price === null || typeof value.price === 'number')
   );
 }
 
@@ -81,10 +82,9 @@ export async function fetchStockProducts(): Promise<StockProduct[]> {
 
 /** The catalog view. Without `exact` the quantity is dropped here, so it never reaches an anonymous page; the location never leaves. */
 export async function listStockProducts(exact: boolean): Promise<ShopProduct[]> {
-  return (await fetchStockProducts()).map(({ sku, name, quantity, available }) => {
+  return (await fetchStockProducts()).map(({ sku, name, quantity, available, price }) => {
     const left = typeof available === 'number' ? available : quantity;
-    return exact
-      ? { sku, name, inStock: left > 0, quantity: left }
-      : { sku, name, inStock: left > 0 };
+    const shown = { sku, name, inStock: left > 0, price: price ?? null };
+    return exact ? { ...shown, quantity: left } : shown;
   });
 }

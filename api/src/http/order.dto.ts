@@ -15,7 +15,14 @@ import {
 } from 'class-validator';
 import type { EventWithOrder } from '../application/order.use-cases';
 import { EVENT_TYPES, type EventType, type OrderEvent } from '../application/order-repository';
-import { ORDER_CHANNELS, ORDER_RULES, type Order, type OrderChannel } from '../domain/order';
+import {
+  ORDER_CHANNELS,
+  ORDER_RULES,
+  PAYMENT_METHODS,
+  type Order,
+  type OrderChannel,
+  type PaymentMethod,
+} from '../domain/order';
 import { ORDER_STATUSES, type OrderStatus } from '../domain/order-status';
 
 // The DTOs check shape and size; the domain checks the business rules and returns their codes.
@@ -26,6 +33,27 @@ export class OrderItemDto {
   @ApiProperty({ example: 2, minimum: 1, maximum: ORDER_RULES.maxQuantity })
   @IsInt()
   quantity!: number;
+}
+
+/** Staff and customer orders: name and price come from the stock, so `name` is accepted but ignored. */
+export class OrderLineDto {
+  @ApiProperty({ example: 'BRG-01' }) @IsString() @MaxLength(32) sku!: string;
+  @ApiPropertyOptional({ description: 'Ignored: the stock name is stored' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  name?: string;
+  @ApiProperty({ example: 2, minimum: 1, maximum: ORDER_RULES.maxQuantity })
+  @IsInt()
+  quantity!: number;
+}
+
+export class OrderItemResponse {
+  @ApiProperty() sku!: string;
+  @ApiProperty() name!: string;
+  @ApiProperty() quantity!: number;
+  @ApiProperty({ type: Number, nullable: true, description: 'Cents, from the stock when placed' })
+  unitPrice!: number | null;
 }
 
 export class DeliveryAddressDto {
@@ -43,29 +71,48 @@ export class CreateOrderDto {
   @MaxLength(200)
   customerName!: string;
 
-  @ApiProperty({ type: [OrderItemDto] })
+  @ApiProperty({ type: [OrderLineDto] })
   @IsArray()
   @ArrayMinSize(1)
   @ArrayMaxSize(ORDER_RULES.maxItems)
   @ValidateNested({ each: true })
-  @Type(() => OrderItemDto)
-  items!: OrderItemDto[];
+  @Type(() => OrderLineDto)
+  items!: OrderLineDto[];
 
   @ApiPropertyOptional({ type: DeliveryAddressDto })
   @IsOptional()
   @ValidateNested()
   @Type(() => DeliveryAddressDto)
   delivery?: DeliveryAddressDto;
+
+  @ApiPropertyOptional({ enum: PAYMENT_METHODS, description: 'CASH when omitted' })
+  @IsOptional()
+  @IsIn(PAYMENT_METHODS)
+  paymentMethod?: PaymentMethod;
+
+  @ApiPropertyOptional({ description: 'CASH only: cents the customer pays with', example: 10000 })
+  @IsOptional()
+  @IsInt()
+  changeFor?: number;
 }
 
 export class CustomerOrderDto {
-  @ApiProperty({ type: [OrderItemDto] })
+  @ApiProperty({ type: [OrderLineDto] })
   @IsArray()
   @ArrayMinSize(1)
   @ArrayMaxSize(ORDER_RULES.maxItems)
   @ValidateNested({ each: true })
-  @Type(() => OrderItemDto)
-  items!: OrderItemDto[];
+  @Type(() => OrderLineDto)
+  items!: OrderLineDto[];
+
+  @ApiProperty({ enum: PAYMENT_METHODS, description: 'Paid on delivery' })
+  @IsIn(PAYMENT_METHODS)
+  paymentMethod!: PaymentMethod;
+
+  @ApiPropertyOptional({ description: 'CASH only: cents the customer pays with', example: 10000 })
+  @IsOptional()
+  @IsInt()
+  changeFor?: number;
 }
 
 export class CancelMyOrderDto {
@@ -104,7 +151,17 @@ export class OrderResponse {
   @ApiProperty({ description: 'Daily number shown on screens' }) number!: number;
   @ApiProperty() customerName!: string;
   @ApiProperty({ enum: ORDER_CHANNELS }) channel!: OrderChannel;
-  @ApiProperty({ type: [OrderItemDto] }) items!: OrderItemDto[];
+  @ApiProperty({ type: [OrderItemResponse] }) items!: OrderItemResponse[];
+  @ApiProperty({
+    type: Number,
+    nullable: true,
+    description: 'Cents; null if any item has no price',
+  })
+  total!: number | null;
+  @ApiProperty({ enum: PAYMENT_METHODS, nullable: true, description: 'Null for platform orders' })
+  paymentMethod!: PaymentMethod | null;
+  @ApiProperty({ type: Number, nullable: true, description: 'Cents, CASH only' })
+  changeFor!: number | null;
   @ApiProperty({ type: DeliveryAddressDto, nullable: true }) delivery!: DeliveryAddressDto | null;
   @ApiProperty({ enum: ORDER_STATUSES }) status!: OrderStatus;
   @ApiProperty() version!: number;
@@ -147,6 +204,9 @@ export function toOrderResponse(order: Order): OrderResponse {
     customerName: order.customerName,
     channel: order.channel,
     items: order.items.map((item) => ({ ...item })),
+    total: order.total,
+    paymentMethod: order.paymentMethod,
+    changeFor: order.changeFor,
     delivery: order.delivery,
     status: order.status,
     version: order.version,

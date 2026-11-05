@@ -1,38 +1,32 @@
-import { getFormatter, getTranslations } from 'next-intl/server';
+import { getFormatter, getLocale, getTranslations } from 'next-intl/server';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
-import { api, ApiError, currentRole } from '@/lib/api';
+import { PaymentText } from '@/components/PaymentText';
+import { currentRole, orderOrNotFound } from '@/lib/api';
+import { formatCents } from '@/lib/money';
 import { pickingList, type PickLine } from '@/lib/picking';
 import { fetchStockProducts } from '@/lib/stock';
-import type { OrderDetail, OrderEvent } from '@/lib/types';
-
-async function load(id: string): Promise<OrderDetail> {
-  try {
-    return await api.order(id);
-  } catch (error) {
-    if (error instanceof ApiError && error.status === 404) notFound();
-    throw error;
-  }
-}
+import type { OrderEvent } from '@/lib/types';
 
 export default async function OrderPage({ params }: { params: Promise<{ id: string }> }) {
-  const order = await load((await params).id);
+  const order = await orderOrNotFound((await params).id);
   const role = await currentRole();
+  const isStaff = role === 'STAFF' || role === 'ADMIN';
   // bin locations are fetched here, on the server, and only for staff; null = stock unreachable
-  const picking =
-    role === 'STAFF' || role === 'ADMIN'
-      ? await fetchStockProducts().then(
-          (products) => pickingList(order.items, products),
-          (error: unknown) => {
-            console.error(error);
-            return null;
-          },
-        )
-      : undefined;
+  const picking = isStaff
+    ? await fetchStockProducts().then(
+        (products) => pickingList(order.items, products),
+        (error: unknown) => {
+          console.error(error);
+          return null;
+        },
+      )
+    : undefined;
   const t = await getTranslations('order');
   const status = await getTranslations('status');
   const board = await getTranslations('board');
+  const p = await getTranslations('payment');
   const format = await getFormatter();
+  const locale = await getLocale();
 
   const describe = (event: OrderEvent) => {
     if (event.type === 'ORDER_CREATED') return t('created_event');
@@ -53,6 +47,11 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
         <span className="badge bg-panel-muted">{status(order.status)}</span>
         {order.status === 'PREPARING' && order.lateSince && (
           <span className="badge bg-danger text-white">⚠ {board('late')}</span>
+        )}
+        {isStaff && (
+          <Link href={`/orders/${order.id}/separacao`} className="btn-secondary ml-auto">
+            {t('printSlip')}
+          </Link>
         )}
       </div>
 
@@ -77,9 +76,26 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
               <li key={`${item.sku}-${index}`}>
                 <span className="tabular-nums font-semibold">{item.quantity}×</span> {item.name}{' '}
                 <span className="font-mono text-xs text-muted">{item.sku}</span>
+                {typeof item.unitPrice === 'number' && (
+                  <span className="text-muted tabular-nums">
+                    {' '}
+                    · {formatCents(item.unitPrice * item.quantity, locale)}
+                  </span>
+                )}
               </li>
             ))}
           </ul>
+          {order.total !== null && (
+            <p className="mt-1 text-sm font-semibold">
+              {t('total')}: {formatCents(order.total, locale)}
+            </p>
+          )}
+        </div>
+        <div>
+          <h2 className="label">{p('title')}</h2>
+          <p className="text-sm">
+            <PaymentText order={order} />
+          </p>
         </div>
         {order.delivery && (
           <div>

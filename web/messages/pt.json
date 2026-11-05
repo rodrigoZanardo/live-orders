@@ -67,7 +67,11 @@
     "createAccount": "Crie sua conta",
     "deliveryTo": "Entregue no endereço do seu cadastro.",
     "myOrders": "Meus pedidos",
-    "logout": "Sair"
+    "logout": "Sair",
+    "each": "{price} cada",
+    "noPrice": "Sem preço",
+    "total": "Total",
+    "totalUnknown": "Total confirmado pela loja"
   },
   "login": {
     "title": "Entrar",
@@ -157,7 +161,10 @@
       "quantity": "De 1 a 99.",
       "cep": "8 dígitos, ex.: 01001-000.",
       "required": "Obrigatório."
-    }
+    },
+    "total": "Total",
+    "printSlip": "Imprimir separação",
+    "payment": "Pagamento"
   },
   "webhooks": {
     "title": "Webhooks",
@@ -203,6 +210,7 @@
     "CUSTOMER_NAME_INVALID": "O nome do cliente deve ter de 1 a {max} caracteres.",
     "CEP_INVALID": "O CEP deve ter 8 dígitos.",
     "EXTERNAL_ID_REQUIRED": "Pedidos da plataforma de entrega precisam do id externo.",
+    "CHANGE_FOR_INVALID": "Troco só para dinheiro, e no mínimo o total do pedido.",
     "SKU_NOT_IN_STOCK": "{sku} não é um produto em estoque.",
     "STOCK_INSUFFICIENT": "Estoque insuficiente para {sku}: {available} disponível.",
     "STOCK_UNAVAILABLE": "O estoque está indisponível agora. Tente de novo em instantes.",
@@ -243,7 +251,10 @@
     "cancel": "Cancelar pedido",
     "cancelling": "Cancelando…",
     "shop": "Pedir peças",
-    "unavailable": "Não foi possível carregar seus pedidos. Tente de novo em instantes."
+    "unavailable": "Não foi possível carregar seus pedidos. Tente de novo em instantes.",
+    "total": "Total: {amount}",
+    "live": "Esta página se atualiza sozinha.",
+    "progress": "Andamento do pedido"
   },
   "picking": {
     "title": "Lista de separação",
@@ -252,6 +263,25 @@
     "quantity": "Qtd",
     "location": "Endereço",
     "noLocation": "Sem endereço",
-    "unavailable": "Endereços indisponíveis agora (estoque fora do ar)."
+    "unavailable": "Endereços indisponíveis agora (estoque fora do ar).",
+    "slipTitle": "Ficha de separação · pedido #{number}",
+    "date": "Data",
+    "customer": "Cliente",
+    "delivery": "Entrega",
+    "counterPickup": "Retirada no balcão",
+    "picked": "Separado",
+    "signature": "Separado por (nome e assinatura)",
+    "print": "Imprimir"
+  },
+  "payment": {
+    "title": "Pagamento",
+    "CASH": "Dinheiro",
+    "PIX": "Pix na entrega",
+    "CARD": "Cartão na entrega",
+    "changeFor": "Troco para {amount}",
+    "changeForLabel": "Troco para (R$)",
+    "changeHint": "Deixe vazio se não precisar de troco.",
+    "changeInvalid": "Informe um valor de pelo menos o total, ex.: 50,00.",
+    "none": "Pago na plataforma"
   }
 }

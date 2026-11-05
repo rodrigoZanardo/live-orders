@@ -1,7 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { businessDay } from '../domain/business-day';
-import { numberWithComplement, Order, type DeliveryAddress, type OrderItem } from '../domain/order';
+import {
+  numberWithComplement,
+  Order,
+  type DeliveryAddress,
+  type NewOrderItem,
+} from '../domain/order';
 import { AppError } from '../domain/errors';
 import { businessTimeZone } from '../env';
 import { AddressLookup } from './address-lookup';
@@ -13,7 +18,8 @@ export const PLATFORM_ACTOR = 'delivery-platform';
 export type PlatformOrderBody = {
   externalId: string;
   customerName: string;
-  items: OrderItem[];
+  /** Platform orders keep the names they send and carry no price or payment: they are paid on the platform. */
+  items: NewOrderItem[];
   delivery?: { cep: string; number: string; complement?: string };
 };
 

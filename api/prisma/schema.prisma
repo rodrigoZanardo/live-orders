@@ -47,6 +47,12 @@ enum OrderChannel {
   DELIVERY_PLATFORM
 }
 
+enum PaymentMethod {
+  CASH
+  PIX
+  CARD
+}
+
 enum EventType {
   ORDER_CREATED
   ORDER_STATUS_CHANGED
@@ -74,6 +80,10 @@ model Order {
   deliveryDistrict String?
   deliveryCity     String?
   deliveryState    String?
+  /// paid on delivery or at the counter; null for platform orders (paid on the platform)
+  paymentMethod    PaymentMethod?
+  /// cents the customer pays with in cash, so change can be brought
+  changeFor        Int?
   createdAt        DateTime
   items            OrderItem[]
   events           Event[]
@@ -86,13 +96,15 @@ model Order {
 }
 
 model OrderItem {
-  id       String @id @default(uuid()) @db.Uuid
-  orderId  String @db.Uuid
-  order    Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  position Int
-  sku      String
-  name     String
-  quantity Int
+  id        String @id @default(uuid()) @db.Uuid
+  orderId   String @db.Uuid
+  order     Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  position  Int
+  sku       String
+  name      String
+  quantity  Int
+  /// sale price in cents copied from the stock when the order was placed
+  unitPrice Int?
 
   @@index([orderId])
 }

@@ -79,7 +79,10 @@ describeWithDatabase('my orders over HTTP', () => {
     return response.body.token;
   };
   const place = (token: string) =>
-    http().post('/my/orders').set('Authorization', `Bearer ${token}`).send({ items });
+    http()
+      .post('/my/orders')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ items, paymentMethod: 'PIX' });
   const mine = (token: string) => http().get('/my/orders').set('Authorization', `Bearer ${token}`);
 
   it('places a delivery order under the account name and address', async () => {
@@ -96,6 +99,41 @@ describeWithDatabase('my orders over HTTP', () => {
     // the board sees it like any other order
     const board = await http().get('/orders').set('Authorization', `Bearer ${staffToken}`);
     expect(board.body.map((order: { id: string }) => order.id)).toEqual([created.body.id]);
+  });
+
+  it('stores the stock name and price, never the name the customer sent', async () => {
+    const ana = await signUp('ana@example.com', 'Ana');
+    const created = await http()
+      .post('/my/orders')
+      .set('Authorization', `Bearer ${ana}`)
+      .send({
+        items: [{ sku: 'flt-01', name: 'Free gift', quantity: 2 }],
+        paymentMethod: 'CASH',
+        changeFor: 5000,
+      });
+    expect(created.status).toBe(201);
+    expect(created.body).toMatchObject({ total: 2000, paymentMethod: 'CASH', changeFor: 5000 });
+    const stored = await db.orderItem.findMany({ where: { orderId: created.body.id } });
+    expect(stored).toMatchObject([{ sku: 'FLT-01', name: 'Stock flt-01', unitPrice: 1000 }]);
+    expect((await mine(ana)).body[0].items).toEqual([
+      { sku: 'FLT-01', name: 'Stock flt-01', quantity: 2, unitPrice: 1000 },
+    ]);
+  });
+
+  it('requires a payment method, and change of at least the total', async () => {
+    const ana = await signUp('ana@example.com', 'Ana');
+    const send = (body: object) =>
+      http()
+        .post('/my/orders')
+        .set('Authorization', `Bearer ${ana}`)
+        .send({ items, ...body });
+    expect((await send({})).body.code).toBe('INVALID_INPUT');
+    expect((await send({ paymentMethod: 'CASH', changeFor: 1999 })).body.code).toBe(
+      'CHANGE_FOR_INVALID',
+    );
+    expect((await send({ paymentMethod: 'CARD', changeFor: 5000 })).body.code).toBe(
+      'CHANGE_FOR_INVALID',
+    );
   });
 
   it('refuses a name or address sent in the body', async () => {

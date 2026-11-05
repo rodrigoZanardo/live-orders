@@ -1,12 +1,14 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useEffect, useState, useTransition } from 'react';
 import { moveOrder } from '@/app/actions';
 import { isLate } from '@/lib/board';
 import { NEXT_MOVES, type ApiFailure, type Order, type OrderStatus } from '@/lib/types';
+import { formatCents } from '@/lib/money';
 import { useErrorText } from './form';
+import { PaymentText } from './PaymentText';
 
 /** The ticket's left edge carries its lane colour, so a moved ticket is recognisable at a glance. */
 const STRIPE: Record<OrderStatus, string> = {
@@ -39,6 +41,7 @@ export function OrderCard({
   onDragEnd?: () => void;
 }) {
   const t = useTranslations('board');
+  const locale = useLocale();
   const moves = useTranslations('moves');
   const errorText = useErrorText();
   const [pending, start] = useTransition();
@@ -98,6 +101,12 @@ export function OrderCard({
           </li>
         ))}
       </ul>
+      <p className="mt-1 text-xs text-muted">
+        <PaymentText order={order} />
+        {order.total !== null && (
+          <span className="font-semibold text-ink"> · {formatCents(order.total, locale)}</span>
+        )}
+      </p>
       <p className={`mt-2 text-xs ${late ? 'font-semibold text-danger' : 'text-muted'}`}>
         {minutes === 0 ? t('justNow') : t('since', { minutes })}
       </p>
